@@ -16,6 +16,20 @@ namespace StaffingManagementSystem.Infrastructure.Persistence
 
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
+        public DbSet<Candidate> Candidates => Set<Candidate>();
+
+        public DbSet<SkillMaster> SkillMaster => Set<SkillMaster>();
+
+        public DbSet<CandidateSkill> CandidateSkills => Set<CandidateSkill>();
+
+        public DbSet<CandidateExperience> CandidateExperience => Set<CandidateExperience>();
+
+        public DbSet<CandidateEducation> CandidateEducation => Set<CandidateEducation>();
+
+        public DbSet<CandidateProject> CandidateProjects => Set<CandidateProject>();
+
+        public DbSet<CandidateNote> CandidateNotes => Set<CandidateNote>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
