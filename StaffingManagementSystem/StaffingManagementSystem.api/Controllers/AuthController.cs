@@ -42,5 +42,52 @@ namespace StaffingManagementSystem.Api.Controllers
 
             return result.Success ? Ok(result) : Unauthorized(result);
         }
+
+        /// <summary>
+        /// Starts the "forgot password" flow: if the email matches an active account, a
+        /// single-use reset link is emailed to it. The response is always the same generic
+        /// success message so this endpoint cannot be used to enumerate registered accounts.
+        /// </summary>
+        [HttpPost("forgot-password")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(ApiResponse<object>.FailureResponse("Validation failed.", errors));
+            }
+
+            var result = await _authService.ForgotPasswordAsync(request);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Redeems a password reset token (from the emailed link) and sets a new password.
+        /// </summary>
+        [HttpPost("reset-password")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(ApiResponse<object>.FailureResponse("Validation failed.", errors));
+            }
+
+            var result = await _authService.ResetPasswordAsync(request);
+
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
     }
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ITMLogo } from "@/components/brand/ITMLogo";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/authService";
@@ -194,9 +194,9 @@ export default function Login() {
                 <input id="rememberMe" type="checkbox" {...register("rememberMe")} />
                 Remember Me
               </label>
-              <a className="login-forgot" href="/forgot-password">
+              <Link className="login-forgot" to="/forgot-password">
                 Forgot Password?
-              </a>
+              </Link>
             </div>
 
             <button type="submit" className="login-submit" disabled={isSubmitting} aria-busy={isSubmitting}>
@@ -204,19 +204,6 @@ export default function Login() {
               {isSubmitting ? "Signing In..." : "Sign In"}
             </button>
           </form>
-
-          <div className="login-divider">OR</div>
-
-          <div className="login-sso">
-            <button type="button" className="login-sso__btn" disabled aria-disabled="true">
-              <i className="bi bi-microsoft" aria-hidden="true" />
-              Microsoft
-            </button>
-            <button type="button" className="login-sso__btn" disabled aria-disabled="true">
-              <i className="bi bi-google" aria-hidden="true" />
-              Google
-            </button>
-          </div>
         </div>
       </main>
     </div>

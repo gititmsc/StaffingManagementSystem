@@ -10,5 +10,7 @@ namespace StaffingManagementSystem.Repositories.Interfaces
         Task<User?> GetByEmailAsync(string email);
 
         Task UpdateLastLoginAsync(Guid userId, DateTime loginAtUtc);
+
+        Task UpdatePasswordHashAsync(Guid userId, string passwordHash);
     }
 }

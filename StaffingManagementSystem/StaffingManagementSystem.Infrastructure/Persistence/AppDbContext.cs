@@ -14,6 +14,8 @@ namespace StaffingManagementSystem.Infrastructure.Persistence
 
         public DbSet<User> Users => Set<User>();
 
+        public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

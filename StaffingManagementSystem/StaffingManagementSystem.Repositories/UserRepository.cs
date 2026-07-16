@@ -24,5 +24,14 @@ namespace StaffingManagementSystem.Repositories
                 .Where(u => u.Id == userId)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.LastLoginAtUtc, loginAtUtc));
         }
+
+        public async Task UpdatePasswordHashAsync(Guid userId, string passwordHash)
+        {
+            await _dbContext.Users
+                .Where(u => u.Id == userId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(u => u.PasswordHash, passwordHash)
+                    .SetProperty(u => u.UpdatedAtUtc, DateTime.UtcNow));
+        }
     }
 }

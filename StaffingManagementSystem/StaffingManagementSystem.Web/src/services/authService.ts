@@ -1,6 +1,6 @@
 /**
- * Authentication service for the Staffing Management System login flow.
- * Calls StaffingManagementSystem.Api -> POST /api/auth/login (AuthController -> IAuthService).
+ * Authentication service for the Staffing Management System login, forgot-password and
+ * reset-password flows. Calls StaffingManagementSystem.Api -> AuthController -> IAuthService.
  */
 import { AxiosError } from "axios";
 import { apiClient } from "@/services/apiClient";
@@ -82,6 +82,47 @@ async function login(request: LoginRequest): Promise<ApiResponse<AuthResult>> {
   }
 }
 
+/** Extracts a consistent {success, message, errors} shape from any AuthController response. */
+async function callAuthEndpoint(path: string, payload: unknown): Promise<ApiResponse<null>> {
+  try {
+    const response = await apiClient.post<ApiResponse<unknown>>(path, payload);
+
+    return {
+      success: response.data.success,
+      message: response.data.message,
+      errors: response.data.errors,
+    };
+  } catch (error) {
+    const axiosError = error as AxiosError<ApiResponse<unknown>>;
+    const apiMessage = axiosError.response?.data?.message;
+
+    return {
+      success: false,
+      message: apiMessage ?? "Unable to reach the server. Please try again.",
+      errors: axiosError.response?.data?.errors,
+    };
+  }
+}
+
+/**
+ * Requests a password reset email for the given address. The API always returns a generic
+ * success message regardless of whether the address matches an account, by design.
+ */
+function forgotPassword(email: string): Promise<ApiResponse<null>> {
+  return callAuthEndpoint("/api/auth/forgot-password", { email });
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/** Redeems a password reset token (from the emailed link) and sets a new password. */
+function resetPassword(request: ResetPasswordRequest): Promise<ApiResponse<null>> {
+  return callAuthEndpoint("/api/auth/reset-password", request);
+}
+
 function persistSession(result: AuthResult, rememberMe: boolean): void {
   const storage = rememberMe ? window.localStorage : window.sessionStorage;
   storage.setItem(TOKEN_STORAGE_KEY, result.token);
@@ -110,4 +151,6 @@ export const authService = {
   getToken,
   getStoredUser,
   persistSession,
+  forgotPassword,
+  resetPassword,
 };
