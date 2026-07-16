@@ -42,6 +42,24 @@ namespace StaffingManagementSystem.Infrastructure.Email
             return SendAsync(toEmail, subject, body, cancellationToken);
         }
 
+        public Task SendAccountSetupEmailAsync(
+            string toEmail,
+            string recipientName,
+            string setupLink,
+            CancellationToken cancellationToken = default)
+        {
+            const string subject = "Welcome to the Staffing Management System — set up your password";
+
+            var body =
+                $"<p>Hi {WebUtility.HtmlEncode(recipientName)},</p>" +
+                "<p>An administrator has created an account for you on the Staffing Management System. " +
+                "Set your password to get started. This link is valid for 60 minutes and can only be used once.</p>" +
+                $"<p><a href=\"{WebUtility.HtmlEncode(setupLink)}\">Set your password</a></p>" +
+                "<p>If you weren't expecting this, you can safely ignore this email.</p>";
+
+            return SendAsync(toEmail, subject, body, cancellationToken);
+        }
+
         private async Task SendAsync(string toEmail, string subject, string htmlBody, CancellationToken cancellationToken)
         {
             var actualRecipient = _settings.EnableTestMode && !string.IsNullOrWhiteSpace(_settings.TestToEmailAddress)
@@ -74,8 +92,7 @@ namespace StaffingManagementSystem.Infrastructure.Email
             catch (Exception ex)
             {
                 // Never let a failed email send take down the request that triggered it —
-                // the caller (AuthService) treats "forgot password" as best-effort so as not
-                // to leak whether an account exists via a 500 vs. a generic success response.
+                // callers treat email delivery as best-effort.
                 _logger.LogError(ex, "Failed to send email to {Recipient}", actualRecipient);
                 throw;
             }

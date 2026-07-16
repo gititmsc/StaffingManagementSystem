@@ -1,0 +1,129 @@
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--itm-bg);
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.75rem 1.75rem;
+  background: var(--itm-card-bg);
+  border-bottom: 1px solid var(--itm-border);
+  box-shadow: var(--itm-shadow-soft);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 0 0 auto;
+}
+
+.app-topbar__title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--itm-primary);
+  white-space: nowrap;
+}
+
+.app-topbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+}
+
+.app-topbar__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--itm-radius-control);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--itm-muted);
+  transition: background var(--itm-transition), color var(--itm-transition);
+}
+
+.app-topbar__link:hover {
+  background: var(--itm-bg);
+  color: var(--itm-primary);
+  text-decoration: none;
+}
+
+.app-topbar__link.is-active {
+  background: rgba(var(--itm-primary-rgb), 0.1);
+  color: var(--itm-primary);
+}
+
+.app-topbar__user {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex: 0 0 auto;
+}
+
+.app-topbar__user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.25;
+}
+
+.app-topbar__user-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--itm-text);
+}
+
+.app-topbar__user-role {
+  font-size: 0.75rem;
+  color: var(--itm-muted);
+}
+
+.app-topbar__signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--itm-border);
+  background: transparent;
+  color: var(--itm-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--itm-radius-control);
+  cursor: pointer;
+  transition: background var(--itm-transition), border-color var(--itm-transition), color var(--itm-transition);
+}
+
+.app-topbar__signout:hover {
+  border-color: var(--itm-secondary);
+  color: var(--itm-secondary);
+  background: rgba(var(--itm-secondary-rgb), 0.06);
+}
+
+.app-content {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 767.98px) {
+  .app-topbar {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .app-topbar__nav {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .app-topbar__user-info {
+    display: none;
+  }
+}

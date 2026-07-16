@@ -15,5 +15,15 @@ namespace StaffingManagementSystem.Core.Interfaces
             string recipientName,
             string resetLink,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Sends a "welcome, set up your password" email to a user account that was just
+        /// created by an administrator. Uses the same set-a-password link as the reset flow.
+        /// </summary>
+        Task SendAccountSetupEmailAsync(
+            string toEmail,
+            string recipientName,
+            string setupLink,
+            CancellationToken cancellationToken = default);
     }
 }

@@ -11,6 +11,7 @@ namespace StaffingManagementSystem.Services.Extensions
         public static IServiceCollection AddBusinessServices(this IServiceCollection services)
         {
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IUserManagementService, UserManagementService>();
 
             return services;
         }

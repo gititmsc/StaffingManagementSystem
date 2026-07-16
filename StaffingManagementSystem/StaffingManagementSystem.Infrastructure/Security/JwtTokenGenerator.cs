@@ -28,6 +28,9 @@ namespace StaffingManagementSystem.Infrastructure.Security
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                // Also emitted as NameIdentifier so controllers can read it via
+                // User.FindFirstValue(ClaimTypes.NameIdentifier) regardless of inbound claim mapping.
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.Name, user.FullName),

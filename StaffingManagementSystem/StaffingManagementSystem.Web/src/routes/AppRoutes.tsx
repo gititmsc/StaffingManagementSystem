@@ -3,7 +3,10 @@ import Login from "@/pages/login/Login";
 import ForgotPassword from "@/pages/forgot-password/ForgotPassword";
 import ResetPassword from "@/pages/reset-password/ResetPassword";
 import Dashboard from "@/pages/dashboard/Dashboard";
+import Users from "@/pages/users/Users";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { USER_MANAGEMENT_VIEW_ROLES } from "@/constants/roles";
 
 export function AppRoutes() {
   return (
@@ -16,7 +19,19 @@ export function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <AppLayout>
+              <Dashboard />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute roles={USER_MANAGEMENT_VIEW_ROLES}>
+            <AppLayout>
+              <Users />
+            </AppLayout>
           </ProtectedRoute>
         }
       />

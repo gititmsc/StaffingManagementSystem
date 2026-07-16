@@ -42,9 +42,19 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
                 .HasConversion<string>()
                 .HasMaxLength(50);
 
+            builder.Property(u => u.PhoneNumber)
+                .HasMaxLength(30);
+
+            builder.Property(u => u.Department)
+                .HasMaxLength(100);
+
             builder.Property(u => u.IsActive)
                 .IsRequired()
                 .HasDefaultValue(true);
+
+            builder.Property(u => u.IsDeleted)
+                .IsRequired()
+                .HasDefaultValue(false);
 
             builder.Property(u => u.CreatedAtUtc)
                 .IsRequired();

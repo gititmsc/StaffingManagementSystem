@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StaffingManagementSystem.Core.Common;
@@ -9,6 +7,7 @@ using StaffingManagementSystem.Core.Entities;
 using StaffingManagementSystem.Core.Interfaces;
 using StaffingManagementSystem.Repositories.Interfaces;
 using StaffingManagementSystem.Services.Interfaces;
+using StaffingManagementSystem.Services.Security;
 
 namespace StaffingManagementSystem.Services
 {
@@ -82,14 +81,14 @@ namespace StaffingManagementSystem.Services
 
             if (user is not null && user.IsActive)
             {
-                var rawToken = GenerateSecureToken();
+                var rawToken = ResetTokenHelper.GenerateSecureToken();
 
                 await _passwordResetTokenRepository.InvalidateActiveTokensForUserAsync(user.Id);
                 await _passwordResetTokenRepository.CreateAsync(new PasswordResetToken
                 {
                     Id = Guid.NewGuid(),
                     UserId = user.Id,
-                    TokenHash = HashToken(rawToken),
+                    TokenHash = ResetTokenHelper.HashToken(rawToken),
                     ExpiresAtUtc = DateTime.UtcNow.AddMinutes(ResetTokenExpiryMinutes),
                     CreatedAtUtc = DateTime.UtcNow,
                 });
@@ -122,7 +121,7 @@ namespace StaffingManagementSystem.Services
                     ["Passwords do not match."]);
             }
 
-            var tokenHash = HashToken(request.Token);
+            var tokenHash = ResetTokenHelper.HashToken(request.Token);
             var resetToken = await _passwordResetTokenRepository.GetValidByTokenHashAsync(tokenHash, DateTime.UtcNow);
 
             if (resetToken is null)
@@ -141,23 +140,6 @@ namespace StaffingManagementSystem.Services
             return ApiResponse<object>.SuccessResponse(
                 new { },
                 "Your password has been reset. You can now sign in with your new password.");
-        }
-
-        /// <summary>Generates a URL-safe, cryptographically random reset token.</summary>
-        private static string GenerateSecureToken()
-        {
-            var bytes = RandomNumberGenerator.GetBytes(32);
-            return Convert.ToBase64String(bytes)
-                .Replace('+', '-')
-                .Replace('/', '_')
-                .TrimEnd('=');
-        }
-
-        /// <summary>Hashes a reset token with SHA-256 so only the hash is ever persisted.</summary>
-        private static string HashToken(string token)
-        {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-            return Convert.ToBase64String(bytes);
         }
     }
 }
