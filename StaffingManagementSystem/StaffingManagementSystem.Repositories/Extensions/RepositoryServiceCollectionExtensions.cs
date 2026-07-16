@@ -1,0 +1,18 @@
+using Microsoft.Extensions.DependencyInjection;
+using StaffingManagementSystem.Repositories.Interfaces;
+
+namespace StaffingManagementSystem.Repositories.Extensions
+{
+    /// <summary>
+    /// Registers Repository-layer services with the DI container.
+    /// </summary>
+    public static class RepositoryServiceCollectionExtensions
+    {
+        public static IServiceCollection AddRepositories(this IServiceCollection services)
+        {
+            services.AddScoped<IUserRepository, UserRepository>();
+
+            return services;
+        }
+    }
+}
