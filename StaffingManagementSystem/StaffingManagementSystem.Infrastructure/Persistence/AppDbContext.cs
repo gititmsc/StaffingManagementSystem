@@ -30,6 +30,8 @@ namespace StaffingManagementSystem.Infrastructure.Persistence
 
         public DbSet<CandidateNote> CandidateNotes => Set<CandidateNote>();
 
+        public DbSet<CandidateAttachment> CandidateAttachments => Set<CandidateAttachment>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

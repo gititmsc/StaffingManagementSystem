@@ -14,6 +14,9 @@ namespace StaffingManagementSystem.Repositories.Interfaces
         /// <summary>A single non-deleted candidate with its full graph (skills, experience, education, projects, notes).</summary>
         Task<Candidate?> GetByIdAsync(Guid id);
 
+        /// <summary>Lightweight existence check — does not load the candidate's child graph.</summary>
+        Task<bool> ExistsAsync(Guid id);
+
         Task<bool> EmailExistsAsync(string email, Guid? excludeCandidateId = null);
 
         /// <summary>Finds a skill by case-insensitive name, creating it in the shared skill master list if needed.</summary>

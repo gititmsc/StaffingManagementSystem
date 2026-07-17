@@ -67,6 +67,15 @@ export interface CandidateNote {
   createdAtUtc: string;
 }
 
+export interface CandidateAttachment {
+  id: string;
+  fileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedByName?: string | null;
+  uploadedAtUtc: string;
+}
+
 export interface CandidateDetail {
   id: string;
   fullName: string;
@@ -207,6 +216,59 @@ async function addNote(id: string, note: string): Promise<ApiResponse<CandidateN
   }
 }
 
+async function getAttachments(candidateId: string): Promise<ApiResponse<CandidateAttachment[]>> {
+  try {
+    const response = await apiClient.get<ApiResponse<CandidateAttachment[]>>(`/api/candidates/${candidateId}/attachments`);
+    return response.data;
+  } catch (error) {
+    return toFailure<CandidateAttachment[]>(error);
+  }
+}
+
+async function uploadAttachment(candidateId: string, file: File): Promise<ApiResponse<CandidateAttachment>> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post<ApiResponse<CandidateAttachment>>(
+      `/api/candidates/${candidateId}/attachments`,
+      formData
+    );
+    return response.data;
+  } catch (error) {
+    return toFailure<CandidateAttachment>(error);
+  }
+}
+
+async function removeAttachment(candidateId: string, attachmentId: string): Promise<ApiResponse<null>> {
+  try {
+    const response = await apiClient.delete<ApiResponse<null>>(`/api/candidates/${candidateId}/attachments/${attachmentId}`);
+    return response.data;
+  } catch (error) {
+    return toFailure<null>(error);
+  }
+}
+
+/** Downloads an attachment and triggers a browser save-as, using the server-provided file name. */
+async function downloadAttachment(candidateId: string, attachmentId: string, fallbackFileName: string): Promise<void> {
+  const response = await apiClient.get(`/api/candidates/${candidateId}/attachments/${attachmentId}/download`, {
+    responseType: "blob",
+  });
+
+  const disposition = (response.headers as Record<string, string>)["content-disposition"];
+  const match = disposition ? /filename="?([^";]+)"?/i.exec(disposition) : null;
+  const fileName = match?.[1] ?? fallbackFileName;
+
+  const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}
+
 export const candidatesService = {
   getAll,
   getById,
@@ -214,4 +276,8 @@ export const candidatesService = {
   update,
   remove,
   addNote,
+  getAttachments,
+  uploadAttachment,
+  removeAttachment,
+  downloadAttachment,
 };

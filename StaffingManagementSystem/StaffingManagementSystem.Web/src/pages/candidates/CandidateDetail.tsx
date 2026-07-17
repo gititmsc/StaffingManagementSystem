@@ -1,14 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { Modal } from "@/components/ui/Modal";
 import { CANDIDATE_EDIT_ROLES, CANDIDATE_STATUS_LABELS } from "@/constants/candidates";
-import { candidatesService, type CandidateDetail as CandidateDetailData } from "@/services/candidatesService";
+import { candidatesService, type CandidateAttachment, type CandidateDetail as CandidateDetailData } from "@/services/candidatesService";
 import "./CandidateDetail.css";
 
 function formatDate(value?: string | null, options?: Intl.DateTimeFormatOptions): string {
   if (!value) return "—";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString(undefined, options);
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function CandidateDetail() {
@@ -24,6 +31,11 @@ export default function CandidateDetail() {
   const [noteText, setNoteText] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
   const [isSavingNote, setIsSavingNote] = useState(false);
+
+  const [attachments, setAttachments] = useState<CandidateAttachment[]>([]);
+  const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [pendingDeleteAttachment, setPendingDeleteAttachment] = useState<CandidateAttachment | null>(null);
 
   const loadCandidate = async () => {
     if (!id) return;
@@ -42,10 +54,70 @@ export default function CandidateDetail() {
     setIsLoading(false);
   };
 
+  const loadAttachments = async () => {
+    if (!id) return;
+    const response = await candidatesService.getAttachments(id);
+
+    if (!response.success || !response.data) {
+      setAttachmentsError(response.message || "Unable to load attachments.");
+      return;
+    }
+
+    setAttachments(response.data);
+  };
+
   useEffect(() => {
     loadCandidate();
+    loadAttachments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const handleFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !id) return;
+
+    setIsUploading(true);
+    setAttachmentsError(null);
+
+    const response = await candidatesService.uploadAttachment(id, file);
+
+    if (!response.success) {
+      setAttachmentsError(response.message || "Unable to upload this file.");
+      setIsUploading(false);
+      return;
+    }
+
+    setIsUploading(false);
+    await loadAttachments();
+  };
+
+  const handleDownload = async (attachment: CandidateAttachment) => {
+    if (!id) return;
+    setAttachmentsError(null);
+
+    try {
+      await candidatesService.downloadAttachment(id, attachment.id, attachment.fileName);
+    } catch {
+      setAttachmentsError("Unable to download this file.");
+    }
+  };
+
+  const confirmDeleteAttachment = async () => {
+    if (!id || !pendingDeleteAttachment) return;
+    setAttachmentsError(null);
+
+    const response = await candidatesService.removeAttachment(id, pendingDeleteAttachment.id);
+
+    if (!response.success) {
+      setAttachmentsError(response.message || "Unable to delete this attachment.");
+      setPendingDeleteAttachment(null);
+      return;
+    }
+
+    setPendingDeleteAttachment(null);
+    await loadAttachments();
+  };
 
   const submitNote = async () => {
     if (!id || !noteText.trim()) return;
@@ -244,6 +316,70 @@ export default function CandidateDetail() {
       </section>
 
       <section className="candidate-detail-section">
+        <div className="candidate-detail-section__header">
+          <h2 className="candidate-detail-section__title mb-0">Attachments</h2>
+          {canEdit && (
+            <label className="candidate-detail-upload-btn">
+              {isUploading && <span className="login-spinner" aria-hidden="true" />}
+              <i className="bi bi-upload" aria-hidden="true" />
+              Upload File
+              <input type="file" hidden onChange={handleFileSelected} disabled={isUploading} />
+            </label>
+          )}
+        </div>
+
+        {attachmentsError && (
+          <div className="candidate-detail-alert candidate-detail-alert--inline" role="alert">
+            <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+            <span>{attachmentsError}</span>
+          </div>
+        )}
+
+        {attachments.length === 0 ? (
+          <p className="candidate-detail-empty">No files attached yet.</p>
+        ) : (
+          <div className="candidate-detail-list">
+            {attachments.map((attachment) => (
+              <div className="candidate-detail-attachment" key={attachment.id}>
+                <div className="candidate-detail-attachment__info">
+                  <i className="bi bi-file-earmark-text" aria-hidden="true" />
+                  <div>
+                    <div className="candidate-detail-item__title">{attachment.fileName}</div>
+                    <div className="candidate-detail-item__meta">
+                      {formatFileSize(attachment.fileSizeBytes)} · Uploaded by {attachment.uploadedByName || "Unknown"} ·{" "}
+                      {formatDate(attachment.uploadedAtUtc, { year: "numeric", month: "short", day: "numeric" })}
+                    </div>
+                  </div>
+                </div>
+                <div className="candidate-detail-attachment__actions">
+                  <button
+                    type="button"
+                    className="candidate-detail-icon-btn"
+                    onClick={() => handleDownload(attachment)}
+                    aria-label={`Download ${attachment.fileName}`}
+                    title="Download"
+                  >
+                    <i className="bi bi-download" aria-hidden="true" />
+                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      className="candidate-detail-icon-btn candidate-detail-icon-btn--danger"
+                      onClick={() => setPendingDeleteAttachment(attachment)}
+                      aria-label={`Delete ${attachment.fileName}`}
+                      title="Delete"
+                    >
+                      <i className="bi bi-trash-fill" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="candidate-detail-section">
         <h2 className="candidate-detail-section__title">Notes</h2>
 
         {canEdit && (
@@ -288,6 +424,26 @@ export default function CandidateDetail() {
           </div>
         )}
       </section>
+
+      {pendingDeleteAttachment && (
+        <Modal title="Delete Attachment" onClose={() => setPendingDeleteAttachment(null)} size="sm">
+          <p className="mb-0">
+            Are you sure you want to delete <strong>{pendingDeleteAttachment.fileName}</strong>? This can't be undone.
+          </p>
+          <div className="candidate-detail-confirm-actions">
+            <button
+              type="button"
+              className="candidate-detail-btn candidate-detail-btn--ghost"
+              onClick={() => setPendingDeleteAttachment(null)}
+            >
+              Cancel
+            </button>
+            <button type="button" className="candidate-detail-btn candidate-detail-btn--danger" onClick={confirmDeleteAttachment}>
+              Delete Attachment
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

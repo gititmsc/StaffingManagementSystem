@@ -13,6 +13,8 @@ namespace StaffingManagementSystem.Services.Extensions
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IUserManagementService, UserManagementService>();
             services.AddScoped<ICandidateService, CandidateService>();
+            services.AddScoped<ICandidateAttachmentService, CandidateAttachmentService>();
+            services.AddScoped<ICandidateSearchService, CandidateSearchService>();
 
             return services;
         }

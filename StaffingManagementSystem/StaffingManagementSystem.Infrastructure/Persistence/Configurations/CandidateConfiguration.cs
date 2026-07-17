@@ -91,6 +91,11 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
                 .WithOne()
                 .HasForeignKey(n => n.CandidateId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(c => c.Attachments)
+                .WithOne()
+                .HasForeignKey(a => a.CandidateId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

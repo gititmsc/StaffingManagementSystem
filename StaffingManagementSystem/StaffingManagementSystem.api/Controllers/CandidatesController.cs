@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using StaffingManagementSystem.Core.Common;
 using StaffingManagementSystem.Core.DTOs.Candidates;
@@ -21,10 +22,12 @@ namespace StaffingManagementSystem.Api.Controllers
         private const string EditRoles = "SuperAdmin,HRAdmin,Recruiter";
 
         private readonly ICandidateService _candidateService;
+        private readonly ICandidateAttachmentService _attachmentService;
 
-        public CandidatesController(ICandidateService candidateService)
+        public CandidatesController(ICandidateService candidateService, ICandidateAttachmentService attachmentService)
         {
             _candidateService = candidateService;
+            _attachmentService = attachmentService;
         }
 
         /// <summary>Lists every non-deleted candidate.</summary>
@@ -117,6 +120,61 @@ namespace StaffingManagementSystem.Api.Controllers
             }
 
             var result = await _candidateService.AddNoteAsync(id, request, GetActingUserId());
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Lists a candidate's attachments (resumes, documents, etc.).</summary>
+        [HttpGet("{id:guid}/attachments")]
+        [ProducesResponseType(typeof(ApiResponse<List<CandidateAttachmentDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<List<CandidateAttachmentDto>>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetAttachments(Guid id)
+        {
+            var result = await _attachmentService.GetByCandidateIdAsync(id);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Uploads a new attachment for a candidate.</summary>
+        [HttpPost("{id:guid}/attachments")]
+        [Authorize(Roles = EditRoles)]
+        [RequestSizeLimit(20_000_000)]
+        [ProducesResponseType(typeof(ApiResponse<CandidateAttachmentDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CandidateAttachmentDto>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadAttachment(Guid id, [FromForm] IFormFile? file)
+        {
+            if (file is null || file.Length == 0)
+            {
+                return BadRequest(ApiResponse<CandidateAttachmentDto>.FailureResponse(
+                    "Please choose a file to upload.", ["Please choose a file to upload."]));
+            }
+
+            await using var stream = file.OpenReadStream();
+            var result = await _attachmentService.UploadAsync(
+                id, file.FileName, file.ContentType, file.Length, stream, GetActingUserId());
+
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Downloads a candidate attachment.</summary>
+        [HttpGet("{id:guid}/attachments/{attachmentId:guid}/download")]
+        public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId)
+        {
+            var download = await _attachmentService.GetForDownloadAsync(attachmentId);
+            if (download is null)
+            {
+                return NotFound(ApiResponse<object>.FailureResponse("Attachment not found.", ["Attachment not found."]));
+            }
+
+            return File(download.Content, download.ContentType, download.FileName);
+        }
+
+        /// <summary>Deletes a candidate attachment.</summary>
+        [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
+        [Authorize(Roles = EditRoles)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> DeleteAttachment(Guid id, Guid attachmentId)
+        {
+            var result = await _attachmentService.DeleteAsync(attachmentId);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 

@@ -13,6 +13,7 @@ namespace StaffingManagementSystem.Repositories.Extensions
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<ICandidateRepository, CandidateRepository>();
+            services.AddScoped<ICandidateAttachmentRepository, CandidateAttachmentRepository>();
 
             return services;
         }

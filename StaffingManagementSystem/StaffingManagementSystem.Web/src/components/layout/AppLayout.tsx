@@ -31,6 +31,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
               Candidates
             </NavLink>
           )}
+          {canViewCandidates && (
+            <NavLink to="/reports" className={({ isActive }) => `app-topbar__link${isActive ? " is-active" : ""}`}>
+              <i className="bi bi-bar-chart-line" aria-hidden="true" />
+              Reports
+            </NavLink>
+          )}
           {canViewUsers && (
             <NavLink to="/users" className={({ isActive }) => `app-topbar__link${isActive ? " is-active" : ""}`}>
               <i className="bi bi-people" aria-hidden="true" />

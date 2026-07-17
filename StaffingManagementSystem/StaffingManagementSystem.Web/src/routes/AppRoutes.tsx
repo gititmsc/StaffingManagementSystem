@@ -7,6 +7,7 @@ import Users from "@/pages/users/Users";
 import CandidateList from "@/pages/candidates/CandidateList";
 import CandidateForm from "@/pages/candidates/CandidateForm";
 import CandidateDetail from "@/pages/candidates/CandidateDetail";
+import Reports from "@/pages/reports/Reports";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { USER_MANAGEMENT_VIEW_ROLES } from "@/constants/roles";
@@ -75,6 +76,16 @@ export function AppRoutes() {
           <ProtectedRoute roles={CANDIDATE_VIEW_ROLES}>
             <AppLayout>
               <CandidateDetail />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute roles={CANDIDATE_VIEW_ROLES}>
+            <AppLayout>
+              <Reports />
             </AppLayout>
           </ProtectedRoute>
         }

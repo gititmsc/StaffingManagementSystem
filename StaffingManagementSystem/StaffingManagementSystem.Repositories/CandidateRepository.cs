@@ -33,6 +33,9 @@ namespace StaffingManagementSystem.Repositories
                 .Include(c => c.Notes)
                 .FirstOrDefaultAsync();
 
+        public Task<bool> ExistsAsync(Guid id)
+            => _dbContext.Candidates.AnyAsync(c => c.Id == id && !c.IsDeleted);
+
         public Task<bool> EmailExistsAsync(string email, Guid? excludeCandidateId = null)
             => _dbContext.Candidates.AnyAsync(c =>
                 !c.IsDeleted &&

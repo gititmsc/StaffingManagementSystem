@@ -53,5 +53,7 @@ namespace StaffingManagementSystem.Core.Entities
         public List<CandidateProject> Projects { get; set; } = new();
 
         public List<CandidateNote> Notes { get; set; } = new();
+
+        public List<CandidateAttachment> Attachments { get; set; } = new();
     }
 }

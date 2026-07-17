@@ -6,6 +6,7 @@ using StaffingManagementSystem.Core.Interfaces;
 using StaffingManagementSystem.Infrastructure.Email;
 using StaffingManagementSystem.Infrastructure.Persistence;
 using StaffingManagementSystem.Infrastructure.Security;
+using StaffingManagementSystem.Infrastructure.Storage;
 
 namespace StaffingManagementSystem.Infrastructure.Extensions
 {
@@ -22,10 +23,12 @@ namespace StaffingManagementSystem.Infrastructure.Extensions
             services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
             services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
             services.Configure<AppUrlSettings>(configuration);
+            services.Configure<FileStorageSettings>(configuration.GetSection(FileStorageSettings.SectionName));
 
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IEmailService, SmtpEmailService>();
+            services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
             return services;
         }
