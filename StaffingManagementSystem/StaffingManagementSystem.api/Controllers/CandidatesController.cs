@@ -139,7 +139,7 @@ namespace StaffingManagementSystem.Api.Controllers
         [RequestSizeLimit(20_000_000)]
         [ProducesResponseType(typeof(ApiResponse<CandidateAttachmentDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<CandidateAttachmentDto>), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UploadAttachment(Guid id, [FromForm] IFormFile? file)
+        public async Task<IActionResult> UploadAttachment(Guid id, IFormFile? file)
         {
             if (file is null || file.Length == 0)
             {
@@ -156,6 +156,7 @@ namespace StaffingManagementSystem.Api.Controllers
 
         /// <summary>Downloads a candidate attachment.</summary>
         [HttpGet("{id:guid}/attachments/{attachmentId:guid}/download")]
+        [Produces("application/octet-stream")]
         public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId)
         {
             var download = await _attachmentService.GetForDownloadAsync(attachmentId);

@@ -36,6 +36,7 @@ namespace StaffingManagementSystem.Api.Controllers
 
         /// <summary>Exports every candidate matching the same filters as <see cref="Search"/> to CSV (no pagination).</summary>
         [HttpGet("search/export")]
+        [Produces("text/csv")]
         public async Task<IActionResult> ExportSearch([FromQuery] CandidateSearchRequestDto request)
         {
             var items = await _searchService.SearchAllAsync(request);
