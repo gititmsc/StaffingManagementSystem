@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { CANDIDATE_STATUS_LABELS, CANDIDATE_STATUS_OPTIONS } from "@/constants/candidates";
+import { CANDIDATE_STATUS_LABELS, CANDIDATE_STATUS_OPTIONS, PROFICIENCY_OPTIONS } from "@/constants/candidates";
 import {
   reportsService,
   type CandidateReportSummary,
@@ -10,14 +10,41 @@ import {
 } from "@/services/reportsService";
 import "./Reports.css";
 
-const EMPTY_FILTERS: CandidateSearchParams = {
-  skills: [],
-  skillMatchMode: "OR",
-  sortBy: "Created",
-  sortDescending: true,
-  page: 1,
-  pageSize: 10,
+type ReportTab = "search" | "skill" | "experience" | "company";
+
+const TAB_ORDER: ReportTab[] = ["search", "skill", "experience", "company"];
+
+const TAB_LABELS: Record<ReportTab, string> = {
+  search: "Advanced Search",
+  skill: "Skill-wise",
+  experience: "Experience-wise",
+  company: "Company-wise",
 };
+
+const TAB_ICONS: Record<ReportTab, string> = {
+  search: "bi-search",
+  skill: "bi-stars",
+  experience: "bi-briefcase",
+  company: "bi-building",
+};
+
+const TAB_TITLES: Record<ReportTab, string> = {
+  search: "Candidate Search Report",
+  skill: "Skill-wise Candidate Report",
+  experience: "Experience-wise Candidate Report",
+  company: "Company-wise Candidate Report",
+};
+
+function baseFiltersForTab(tab: ReportTab): CandidateSearchParams {
+  return {
+    skills: [],
+    skillMatchMode: "OR",
+    sortBy: tab === "experience" ? "Experience" : "Created",
+    sortDescending: true,
+    page: 1,
+    pageSize: 10,
+  };
+}
 
 function formatDate(value?: string | null): string {
   if (!value) return "—";
@@ -25,16 +52,26 @@ function formatDate(value?: string | null): string {
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
 }
 
+const EXPERIENCE_BANDS: Record<string, [number | undefined, number | undefined]> = {
+  "0-2 yrs": [0, 2],
+  "2-5 yrs": [2, 5],
+  "5-10 yrs": [5, 10],
+  "10+ yrs": [10, undefined],
+};
+
 export default function Reports() {
   const navigate = useNavigate();
 
-  const [filters, setFilters] = useState<CandidateSearchParams>(EMPTY_FILTERS);
+  const [activeTab, setActiveTab] = useState<ReportTab>("search");
+  const [filters, setFilters] = useState<CandidateSearchParams>(baseFiltersForTab("search"));
   const [skillInput, setSkillInput] = useState("");
 
   const [results, setResults] = useState<CandidateSearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(true);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
+
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
   const [summary, setSummary] = useState<CandidateReportSummary | null>(null);
@@ -75,6 +112,16 @@ export default function Reports() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const switchTab = (tab: ReportTab) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setSkillInput("");
+    setExportError(null);
+    const nextFilters = baseFiltersForTab(tab);
+    setFilters(nextFilters);
+    runSearch(nextFilters);
+  };
+
   const addSkillChip = () => {
     const value = skillInput.trim();
     if (!value) return;
@@ -98,43 +145,42 @@ export default function Reports() {
     }
   };
 
-  const handleReset = () => {
-    setFilters(EMPTY_FILTERS);
-    setSkillInput("");
-    runSearch({ ...EMPTY_FILTERS });
-  };
-
-  const handleExport = async () => {
-    setIsExporting(true);
+  const handleExportCsv = async () => {
+    setIsExportingCsv(true);
     setExportError(null);
     try {
       await reportsService.exportCsv(filters);
     } catch {
       setExportError("Unable to export results. Please try again.");
     } finally {
-      setIsExporting(false);
+      setIsExportingCsv(false);
     }
   };
 
-  const applySkillFilter = (skillName: string) => {
-    const nextFilters: CandidateSearchParams = { ...filters, skills: [skillName], skillMatchMode: "OR", page: 1 };
+  const handleExportPdf = async () => {
+    setIsExportingPdf(true);
+    setExportError(null);
+    try {
+      await reportsService.exportPdf(filters, TAB_TITLES[activeTab]);
+    } catch {
+      setExportError("Unable to export results. Please try again.");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const applySkillQuickPick = (skillName: string) => {
     setSkillInput("");
-    runSearch(nextFilters);
+    runSearch({ ...baseFiltersForTab("skill"), skills: [skillName], page: 1 });
   };
 
-  const applyExperienceBand = (bandLabel: string) => {
-    const bands: Record<string, [number | undefined, number | undefined]> = {
-      "0-2 yrs": [0, 2],
-      "2-5 yrs": [2, 5],
-      "5-10 yrs": [5, 10],
-      "10+ yrs": [10, undefined],
-    };
-    const [min, max] = bands[bandLabel] ?? [undefined, undefined];
-    runSearch({ minExperience: min, maxExperience: max, page: 1 });
+  const applyExperienceQuickPick = (bandLabel: string) => {
+    const [min, max] = EXPERIENCE_BANDS[bandLabel] ?? [undefined, undefined];
+    runSearch({ ...baseFiltersForTab("experience"), minExperience: min, maxExperience: max, page: 1 });
   };
 
-  const applyCompanyFilter = (companyName: string) => {
-    runSearch({ company: companyName, page: 1 });
+  const applyCompanyQuickPick = (companyName: string) => {
+    runSearch({ ...baseFiltersForTab("company"), company: companyName, page: 1 });
   };
 
   const goToPage = (page: number) => {
@@ -143,6 +189,22 @@ export default function Reports() {
 
   const maxCount = (rows: NameCount[]): number => Math.max(1, ...rows.map((r) => r.count));
 
+  const renderQuickPicks = (rows: NameCount[], onPick: (name: string) => void) => (
+    <ul className="reports-bar-list">
+      {rows.map((row) => (
+        <li key={row.name}>
+          <button type="button" onClick={() => onPick(row.name)}>
+            <span className="reports-bar-list__label">{row.name}</span>
+            <span className="reports-bar-list__track">
+              <span className="reports-bar-list__fill" style={{ width: `${(row.count / maxCount(rows)) * 100}%` }} />
+            </span>
+            <span className="reports-bar-list__count">{row.count}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
     <div className="container py-4">
       <div className="reports-header">
@@ -150,164 +212,262 @@ export default function Reports() {
           Search &amp; Reports
         </h1>
         <p className="text-muted mb-0">
-          Combine filters to search the candidate pool, or drill into the skill, experience and company reports below.
+          Run the combined search, or switch to a standard report to preview and export a focused candidate list.
         </p>
+      </div>
+
+      <div className="reports-tabs">
+        {TAB_ORDER.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            className={`reports-tab${activeTab === tab ? " is-active" : ""}`}
+            onClick={() => switchTab(tab)}
+          >
+            <i className={`bi ${TAB_ICONS[tab]}`} aria-hidden="true" />
+            {TAB_LABELS[tab]}
+          </button>
+        ))}
       </div>
 
       <section className="reports-filter-panel">
         <div className="row g-3">
-          <div className="col-12 col-lg-6">
-            <label className="reports-label">Skills</label>
-            <div className="reports-skill-input">
-              {(filters.skills ?? []).map((skill) => (
-                <span className="reports-skill-chip" key={skill}>
-                  {skill}
-                  <button type="button" onClick={() => removeSkillChip(skill)} aria-label={`Remove ${skill}`}>
-                    <i className="bi bi-x" aria-hidden="true" />
-                  </button>
-                </span>
-              ))}
+          {(activeTab === "search" || activeTab === "skill") && (
+            <div className="col-12 col-lg-6">
+              <label className="reports-label">Skills</label>
+              <div className="reports-skill-input">
+                {(filters.skills ?? []).map((skill) => (
+                  <span className="reports-skill-chip" key={skill}>
+                    {skill}
+                    <button type="button" onClick={() => removeSkillChip(skill)} aria-label={`Remove ${skill}`}>
+                      <i className="bi bi-x" aria-hidden="true" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  placeholder="Type a skill and press Enter"
+                  value={skillInput}
+                  onChange={(event) => setSkillInput(event.target.value)}
+                  onKeyDown={handleSkillKeyDown}
+                  onBlur={addSkillChip}
+                />
+              </div>
+              {(filters.skills ?? []).length > 1 && (
+                <div className="reports-skill-mode">
+                  <label>
+                    <input
+                      type="radio"
+                      checked={filters.skillMatchMode !== "AND"}
+                      onChange={() => setFilters((prev) => ({ ...prev, skillMatchMode: "OR" }))}
+                    />
+                    Match any (OR)
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      checked={filters.skillMatchMode === "AND"}
+                      onChange={() => setFilters((prev) => ({ ...prev, skillMatchMode: "AND" }))}
+                    />
+                    Match all (AND)
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "skill" && (
+            <>
+              <div className="col-6 col-lg-3">
+                <label className="reports-label">Proficiency</label>
+                <select
+                  className="form-select"
+                  value={filters.skillProficiency ?? ""}
+                  onChange={(event) => setFilters((prev) => ({ ...prev, skillProficiency: event.target.value || undefined }))}
+                >
+                  <option value="">Any</option>
+                  {PROFICIENCY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-6 col-lg-3">
+                <label className="reports-label">Min. Years in Skill</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  className="form-control"
+                  value={filters.minYearsInSkill ?? ""}
+                  onChange={(event) =>
+                    setFilters((prev) => ({ ...prev, minYearsInSkill: event.target.value ? Number(event.target.value) : undefined }))
+                  }
+                />
+              </div>
+            </>
+          )}
+
+          {(activeTab === "search" || activeTab === "experience") && (
+            <>
+              <div className="col-6 col-lg-3">
+                <label className="reports-label">Min Experience (yrs)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  className="form-control"
+                  value={filters.minExperience ?? ""}
+                  onChange={(event) =>
+                    setFilters((prev) => ({ ...prev, minExperience: event.target.value ? Number(event.target.value) : undefined }))
+                  }
+                />
+              </div>
+
+              <div className="col-6 col-lg-3">
+                <label className="reports-label">Max Experience (yrs)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  className="form-control"
+                  value={filters.maxExperience ?? ""}
+                  onChange={(event) =>
+                    setFilters((prev) => ({ ...prev, maxExperience: event.target.value ? Number(event.target.value) : undefined }))
+                  }
+                />
+              </div>
+
+              <div className="col-12 col-lg-4">
+                <label className="reports-label">Current Designation</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={filters.designation ?? ""}
+                  onChange={(event) => setFilters((prev) => ({ ...prev, designation: event.target.value }))}
+                />
+              </div>
+            </>
+          )}
+
+          {(activeTab === "search" || activeTab === "company") && (
+            <div className="col-12 col-lg-4">
+              <label className="reports-label">Company (current or past)</label>
               <input
                 type="text"
-                placeholder="Type a skill and press Enter"
-                value={skillInput}
-                onChange={(event) => setSkillInput(event.target.value)}
-                onKeyDown={handleSkillKeyDown}
-                onBlur={addSkillChip}
+                className="form-control"
+                value={filters.company ?? ""}
+                onChange={(event) => setFilters((prev) => ({ ...prev, company: event.target.value }))}
               />
             </div>
-            {(filters.skills ?? []).length > 1 && (
-              <div className="reports-skill-mode">
-                <label>
-                  <input
-                    type="radio"
-                    checked={filters.skillMatchMode !== "AND"}
-                    onChange={() => setFilters((prev) => ({ ...prev, skillMatchMode: "OR" }))}
-                  />
-                  Match any (OR)
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    checked={filters.skillMatchMode === "AND"}
-                    onChange={() => setFilters((prev) => ({ ...prev, skillMatchMode: "AND" }))}
-                  />
-                  Match all (AND)
-                </label>
+          )}
+
+          {activeTab === "search" && (
+            <>
+              <div className="col-12 col-lg-4">
+                <label className="reports-label">Location</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={filters.location ?? ""}
+                  onChange={(event) => setFilters((prev) => ({ ...prev, location: event.target.value }))}
+                />
               </div>
-            )}
-          </div>
 
-          <div className="col-6 col-lg-3">
-            <label className="reports-label">Min Experience (yrs)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.5"
-              className="form-control"
-              value={filters.minExperience ?? ""}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, minExperience: event.target.value ? Number(event.target.value) : undefined }))
-              }
-            />
-          </div>
+              <div className="col-6 col-lg-3">
+                <label className="reports-label">Status</label>
+                <select
+                  className="form-select"
+                  value={filters.status ?? ""}
+                  onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value || undefined }))}
+                >
+                  <option value="">All statuses</option>
+                  {CANDIDATE_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="col-6 col-lg-3">
-            <label className="reports-label">Max Experience (yrs)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.5"
-              className="form-control"
-              value={filters.maxExperience ?? ""}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, maxExperience: event.target.value ? Number(event.target.value) : undefined }))
-              }
-            />
-          </div>
+              <div className="col-6 col-lg-3">
+                <label className="reports-label">Sort By</label>
+                <select
+                  className="form-select"
+                  value={filters.sortBy}
+                  onChange={(event) =>
+                    setFilters((prev) => ({ ...prev, sortBy: event.target.value as CandidateSearchParams["sortBy"] }))
+                  }
+                >
+                  <option value="Created">Date Added</option>
+                  <option value="Experience">Experience</option>
+                  <option value="Name">Name</option>
+                </select>
+              </div>
 
-          <div className="col-12 col-lg-4">
-            <label className="reports-label">Company (current or past)</label>
-            <input
-              type="text"
-              className="form-control"
-              value={filters.company ?? ""}
-              onChange={(event) => setFilters((prev) => ({ ...prev, company: event.target.value }))}
-            />
-          </div>
-
-          <div className="col-12 col-lg-4">
-            <label className="reports-label">Current Designation</label>
-            <input
-              type="text"
-              className="form-control"
-              value={filters.designation ?? ""}
-              onChange={(event) => setFilters((prev) => ({ ...prev, designation: event.target.value }))}
-            />
-          </div>
-
-          <div className="col-12 col-lg-4">
-            <label className="reports-label">Location</label>
-            <input
-              type="text"
-              className="form-control"
-              value={filters.location ?? ""}
-              onChange={(event) => setFilters((prev) => ({ ...prev, location: event.target.value }))}
-            />
-          </div>
-
-          <div className="col-6 col-lg-3">
-            <label className="reports-label">Status</label>
-            <select
-              className="form-select"
-              value={filters.status ?? ""}
-              onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value || undefined }))}
-            >
-              <option value="">All statuses</option>
-              {CANDIDATE_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="col-6 col-lg-3">
-            <label className="reports-label">Sort By</label>
-            <select
-              className="form-select"
-              value={filters.sortBy}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, sortBy: event.target.value as CandidateSearchParams["sortBy"] }))
-              }
-            >
-              <option value="Created">Date Added</option>
-              <option value="Experience">Experience</option>
-              <option value="Name">Name</option>
-            </select>
-          </div>
-
-          <div className="col-6 col-lg-3">
-            <label className="reports-label">Direction</label>
-            <select
-              className="form-select"
-              value={filters.sortDescending ? "desc" : "asc"}
-              onChange={(event) => setFilters((prev) => ({ ...prev, sortDescending: event.target.value === "desc" }))}
-            >
-              <option value="desc">Descending</option>
-              <option value="asc">Ascending</option>
-            </select>
-          </div>
+              <div className="col-6 col-lg-3">
+                <label className="reports-label">Direction</label>
+                <select
+                  className="form-select"
+                  value={filters.sortDescending ? "desc" : "asc"}
+                  onChange={(event) => setFilters((prev) => ({ ...prev, sortDescending: event.target.value === "desc" }))}
+                >
+                  <option value="desc">Descending</option>
+                  <option value="asc">Ascending</option>
+                </select>
+              </div>
+            </>
+          )}
         </div>
 
+        {activeTab !== "search" && summary && (
+          <div className="reports-quick-picks">
+            <span className="reports-quick-picks__label">Quick pick:</span>
+            {activeTab === "skill" &&
+              summary.skillCounts.slice(0, 8).map((row) => (
+                <button key={row.name} type="button" className="reports-quick-chip" onClick={() => applySkillQuickPick(row.name)}>
+                  {row.name} <span>{row.count}</span>
+                </button>
+              ))}
+            {activeTab === "experience" &&
+              summary.experienceBandCounts.map((row) => (
+                <button key={row.name} type="button" className="reports-quick-chip" onClick={() => applyExperienceQuickPick(row.name)}>
+                  {row.name} <span>{row.count}</span>
+                </button>
+              ))}
+            {activeTab === "company" &&
+              summary.companyCounts.slice(0, 8).map((row) => (
+                <button key={row.name} type="button" className="reports-quick-chip" onClick={() => applyCompanyQuickPick(row.name)}>
+                  {row.name} <span>{row.count}</span>
+                </button>
+              ))}
+          </div>
+        )}
+
         <div className="reports-filter-actions">
-          <button type="button" className="reports-btn reports-btn--ghost" onClick={handleReset}>
+          <button type="button" className="reports-btn reports-btn--ghost" onClick={() => switchTab(activeTab)}>
             Reset
           </button>
-          <button type="button" className="reports-btn reports-btn--outline" onClick={handleExport} disabled={isExporting}>
-            {isExporting && <span className="login-spinner" aria-hidden="true" />}
-            <i className="bi bi-download" aria-hidden="true" />
+          <button
+            type="button"
+            className="reports-btn reports-btn--outline"
+            onClick={handleExportCsv}
+            disabled={isExportingCsv}
+          >
+            {isExportingCsv && <span className="login-spinner" aria-hidden="true" />}
+            <i className="bi bi-filetype-csv" aria-hidden="true" />
             Export CSV
+          </button>
+          <button
+            type="button"
+            className="reports-btn reports-btn--outline"
+            onClick={handleExportPdf}
+            disabled={isExportingPdf}
+          >
+            {isExportingPdf && <span className="login-spinner" aria-hidden="true" />}
+            <i className="bi bi-filetype-pdf" aria-hidden="true" />
+            Export PDF
           </button>
           <button type="button" className="reports-btn reports-btn--primary" onClick={() => runSearch({ page: 1 })}>
             <i className="bi bi-search" aria-hidden="true" />
@@ -345,7 +505,7 @@ export default function Reports() {
         ) : (
           <>
             <div className="reports-results-summary">
-              {results.totalCount} candidate{results.totalCount === 1 ? "" : "s"} found
+              {results.totalCount} candidate{results.totalCount === 1 ? "" : "s"} found — preview before export
             </div>
             <table className="table candidates-table align-middle mb-0">
               <thead>
@@ -416,81 +576,38 @@ export default function Reports() {
         )}
       </section>
 
-      <div className="reports-summary-grid">
-        <section className="reports-summary-card">
-          <h2 className="reports-summary-card__title">Skill-wise</h2>
-          {summaryError ? (
-            <p className="reports-empty--error mb-0">{summaryError}</p>
-          ) : !summary || summary.skillCounts.length === 0 ? (
-            <p className="candidates-empty mb-0">No skill data yet.</p>
-          ) : (
-            <ul className="reports-bar-list">
-              {summary.skillCounts.map((row) => (
-                <li key={row.name}>
-                  <button type="button" onClick={() => applySkillFilter(row.name)}>
-                    <span className="reports-bar-list__label">{row.name}</span>
-                    <span className="reports-bar-list__track">
-                      <span
-                        className="reports-bar-list__fill"
-                        style={{ width: `${(row.count / maxCount(summary.skillCounts)) * 100}%` }}
-                      />
-                    </span>
-                    <span className="reports-bar-list__count">{row.count}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      {activeTab === "search" && (
+        <div className="reports-summary-grid">
+          <section className="reports-summary-card">
+            <h2 className="reports-summary-card__title">Skill-wise</h2>
+            {summaryError ? (
+              <p className="reports-empty--error mb-0">{summaryError}</p>
+            ) : !summary || summary.skillCounts.length === 0 ? (
+              <p className="candidates-empty mb-0">No skill data yet.</p>
+            ) : (
+              renderQuickPicks(summary.skillCounts, applySkillQuickPick)
+            )}
+          </section>
 
-        <section className="reports-summary-card">
-          <h2 className="reports-summary-card__title">Experience-wise</h2>
-          {!summary ? (
-            <p className="candidates-empty mb-0">No experience data yet.</p>
-          ) : (
-            <ul className="reports-bar-list">
-              {summary.experienceBandCounts.map((row) => (
-                <li key={row.name}>
-                  <button type="button" onClick={() => applyExperienceBand(row.name)}>
-                    <span className="reports-bar-list__label">{row.name}</span>
-                    <span className="reports-bar-list__track">
-                      <span
-                        className="reports-bar-list__fill"
-                        style={{ width: `${(row.count / maxCount(summary.experienceBandCounts)) * 100}%` }}
-                      />
-                    </span>
-                    <span className="reports-bar-list__count">{row.count}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          <section className="reports-summary-card">
+            <h2 className="reports-summary-card__title">Experience-wise</h2>
+            {!summary ? (
+              <p className="candidates-empty mb-0">No experience data yet.</p>
+            ) : (
+              renderQuickPicks(summary.experienceBandCounts, applyExperienceQuickPick)
+            )}
+          </section>
 
-        <section className="reports-summary-card">
-          <h2 className="reports-summary-card__title">Company-wise</h2>
-          {!summary || summary.companyCounts.length === 0 ? (
-            <p className="candidates-empty mb-0">No company data yet.</p>
-          ) : (
-            <ul className="reports-bar-list">
-              {summary.companyCounts.map((row) => (
-                <li key={row.name}>
-                  <button type="button" onClick={() => applyCompanyFilter(row.name)}>
-                    <span className="reports-bar-list__label">{row.name}</span>
-                    <span className="reports-bar-list__track">
-                      <span
-                        className="reports-bar-list__fill"
-                        style={{ width: `${(row.count / maxCount(summary.companyCounts)) * 100}%` }}
-                      />
-                    </span>
-                    <span className="reports-bar-list__count">{row.count}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+          <section className="reports-summary-card">
+            <h2 className="reports-summary-card__title">Company-wise</h2>
+            {!summary || summary.companyCounts.length === 0 ? (
+              <p className="candidates-empty mb-0">No company data yet.</p>
+            ) : (
+              renderQuickPicks(summary.companyCounts, applyCompanyQuickPick)
+            )}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

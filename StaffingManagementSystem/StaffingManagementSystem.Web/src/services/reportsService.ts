@@ -10,6 +10,8 @@ import type { CandidateListItem } from "@/services/candidatesService";
 export interface CandidateSearchParams {
   skills?: string[];
   skillMatchMode?: "AND" | "OR";
+  skillProficiency?: string;
+  minYearsInSkill?: number;
   minExperience?: number;
   maxExperience?: number;
   company?: string;
@@ -60,6 +62,8 @@ function buildSearchParams(params: CandidateSearchParams): URLSearchParams {
   });
 
   if (params.skillMatchMode) query.set("skillMatchMode", params.skillMatchMode);
+  if (params.skillProficiency) query.set("skillProficiency", params.skillProficiency);
+  if (params.minYearsInSkill != null) query.set("minYearsInSkill", String(params.minYearsInSkill));
   if (params.minExperience != null) query.set("minExperience", String(params.minExperience));
   if (params.maxExperience != null) query.set("maxExperience", String(params.maxExperience));
   if (params.company) query.set("company", params.company);
@@ -115,8 +119,33 @@ async function exportCsv(params: CandidateSearchParams): Promise<void> {
   window.URL.revokeObjectURL(blobUrl);
 }
 
+/** Downloads the PDF export for the given filters and triggers a browser save-as. */
+async function exportPdf(params: CandidateSearchParams, reportTitle?: string): Promise<void> {
+  const query = buildSearchParams(params);
+  if (reportTitle) query.set("reportTitle", reportTitle);
+
+  const response = await apiClient.get("/api/reports/search/export/pdf", {
+    params: query,
+    responseType: "blob",
+  });
+
+  const disposition = (response.headers as Record<string, string>)["content-disposition"];
+  const match = disposition ? /filename="?([^";]+)"?/i.exec(disposition) : null;
+  const fileName = match?.[1] ?? "candidates-report.pdf";
+
+  const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}
+
 export const reportsService = {
   search,
   getSummary,
   exportCsv,
+  exportPdf,
 };

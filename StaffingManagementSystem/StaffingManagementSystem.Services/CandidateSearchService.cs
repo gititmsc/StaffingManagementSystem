@@ -1,6 +1,7 @@
 using StaffingManagementSystem.Core.Common;
 using StaffingManagementSystem.Core.DTOs.Candidates;
 using StaffingManagementSystem.Core.Entities;
+using StaffingManagementSystem.Core.Enums;
 using StaffingManagementSystem.Repositories.Interfaces;
 using StaffingManagementSystem.Services.Interfaces;
 
@@ -104,20 +105,38 @@ namespace StaffingManagementSystem.Services
                 .Select(s => s.Trim())
                 .ToList();
 
-            if (requestedSkills.Count > 0)
+            ProficiencyLevel? proficiencyFilter = null;
+            if (!string.IsNullOrWhiteSpace(request.SkillProficiency) &&
+                Enum.TryParse<ProficiencyLevel>(request.SkillProficiency, true, out var parsedProficiency))
+            {
+                proficiencyFilter = parsedProficiency;
+            }
+
+            var hasSkillRefinement = requestedSkills.Count > 0 || proficiencyFilter.HasValue || request.MinYearsInSkill.HasValue;
+
+            if (hasSkillRefinement)
             {
                 var matchAll = string.Equals(request.SkillMatchMode, "AND", StringComparison.OrdinalIgnoreCase);
 
+                bool SkillEntryMatches(CandidateSkill skill, string? requiredName)
+                {
+                    var nameOk = requiredName is null ||
+                        string.Equals(skill.Skill?.Name, requiredName, StringComparison.OrdinalIgnoreCase);
+                    var proficiencyOk = !proficiencyFilter.HasValue || skill.Proficiency == proficiencyFilter.Value;
+                    var yearsOk = !request.MinYearsInSkill.HasValue || (skill.YearsOfExperience ?? 0) >= request.MinYearsInSkill.Value;
+                    return nameOk && proficiencyOk && yearsOk;
+                }
+
                 filtered = filtered.Where(c =>
                 {
-                    var candidateSkillNames = c.Skills
-                        .Select(s => s.Skill?.Name ?? string.Empty)
-                        .Where(n => n.Length > 0)
-                        .ToList();
+                    if (requestedSkills.Count == 0)
+                    {
+                        return c.Skills.Any(s => SkillEntryMatches(s, null));
+                    }
 
                     return matchAll
-                        ? requestedSkills.All(rs => candidateSkillNames.Any(cs => string.Equals(cs, rs, StringComparison.OrdinalIgnoreCase)))
-                        : requestedSkills.Any(rs => candidateSkillNames.Any(cs => string.Equals(cs, rs, StringComparison.OrdinalIgnoreCase)));
+                        ? requestedSkills.All(rs => c.Skills.Any(s => SkillEntryMatches(s, rs)))
+                        : requestedSkills.Any(rs => c.Skills.Any(s => SkillEntryMatches(s, rs)));
                 });
             }
 

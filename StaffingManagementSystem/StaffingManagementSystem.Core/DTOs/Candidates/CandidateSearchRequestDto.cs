@@ -1,8 +1,8 @@
 namespace StaffingManagementSystem.Core.DTOs.Candidates
 {
     /// <summary>
-    /// Query parameters for GET /api/reports/search and /api/reports/search/export
-    /// (RMS SRS 3.4.1 Candidate Search / 3.4.2 Standard Reports).
+    /// Query parameters for GET /api/reports/search and the CSV/PDF export endpoints
+    /// (RMS SRS 3.4.1 Candidate Search / 3.4.2 Standard Reports / Section 6).
     /// </summary>
     public class CandidateSearchRequestDto
     {
@@ -11,6 +11,12 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
 
         /// <summary>"AND" (candidate must have every listed skill) or "OR" (any one is enough). Default "OR".</summary>
         public string SkillMatchMode { get; set; } = "OR";
+
+        /// <summary>Skill-wise report refinement: one of Beginner, Intermediate, Expert.</summary>
+        public string? SkillProficiency { get; set; }
+
+        /// <summary>Skill-wise report refinement: minimum years of experience in the matched skill(s).</summary>
+        public decimal? MinYearsInSkill { get; set; }
 
         public decimal? MinExperience { get; set; }
 

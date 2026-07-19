@@ -139,7 +139,7 @@ namespace StaffingManagementSystem.Api.Controllers
         [RequestSizeLimit(20_000_000)]
         [ProducesResponseType(typeof(ApiResponse<CandidateAttachmentDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<CandidateAttachmentDto>), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UploadAttachment(Guid id, IFormFile? file)
+        public async Task<IActionResult> UploadAttachment(Guid id, [FromForm] IFormFile? file)
         {
             if (file is null || file.Length == 0)
             {

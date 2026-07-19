@@ -2,10 +2,15 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
 using StaffingManagementSystem.Core.Configuration;
 using StaffingManagementSystem.Infrastructure.Extensions;
 using StaffingManagementSystem.Repositories.Extensions;
 using StaffingManagementSystem.Services.Extensions;
+
+// QuestPDF Community license — free for organizations with under $1M USD annual gross
+// revenue; see https://www.questpdf.com/license/ if that ever changes for this project.
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
