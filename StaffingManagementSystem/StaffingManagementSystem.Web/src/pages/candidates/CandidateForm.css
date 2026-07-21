@@ -2,6 +2,22 @@
   margin-bottom: 1.25rem;
 }
 
+.candidate-form-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: transparent;
+  color: var(--itm-muted);
+  font-size: 0.85rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+.candidate-form-back:hover {
+  color: var(--itm-accent);
+}
+
 .candidate-form-loading {
   display: flex;
   align-items: center;

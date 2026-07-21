@@ -336,7 +336,11 @@ export default function CandidateForm() {
   return (
     <div className="container py-4">
       <div className="candidate-form-header">
-        <h1 className="h4 mb-1" style={{ color: "var(--itm-primary)" }}>
+        <button type="button" className="candidate-form-back" onClick={() => navigate("/candidates")}>
+          <i className="bi bi-arrow-left" aria-hidden="true" />
+          Back to Candidates
+        </button>
+        <h1 className="h4 mb-1 mt-2" style={{ color: "var(--itm-primary)" }}>
           {isEdit ? "Edit Candidate" : "Add Candidate"}
         </h1>
         <p className="text-muted mb-0">Capture personal details, skills, experience, education and projects.</p>
@@ -400,7 +404,7 @@ export default function CandidateForm() {
               <input
                 id="phone"
                 className={`form-control ${errors.phone ? "is-invalid" : ""}`}
-                placeholder="+1 555 123 4567"
+                placeholder="+91 98765 43210"
                 {...register("phone", {
                   pattern: { value: PHONE_PATTERN, message: "Enter a valid phone number." },
                 })}

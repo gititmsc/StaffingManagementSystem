@@ -94,6 +94,7 @@ namespace StaffingManagementSystem.Repositories
             await _dbContext.Candidates
                 .Where(c => c.Id == candidate.Id)
                 .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(c => c.Title, candidate.Title)
                     .SetProperty(c => c.FullName, candidate.FullName)
                     .SetProperty(c => c.Email, candidate.Email)
                     .SetProperty(c => c.Phone, candidate.Phone)
@@ -103,6 +104,8 @@ namespace StaffingManagementSystem.Repositories
                     .SetProperty(c => c.Gender, candidate.Gender)
                     .SetProperty(c => c.Status, candidate.Status)
                     .SetProperty(c => c.Source, candidate.Source)
+                    .SetProperty(c => c.OtherSourceText, candidate.OtherSourceText)
+                    .SetProperty(c => c.LinkedInUrl, candidate.LinkedInUrl)
                     .SetProperty(c => c.OwnerRecruiterId, candidate.OwnerRecruiterId)
                     .SetProperty(c => c.TotalExperienceYears, candidate.TotalExperienceYears)
                     .SetProperty(c => c.UpdatedAtUtc, DateTime.UtcNow));
