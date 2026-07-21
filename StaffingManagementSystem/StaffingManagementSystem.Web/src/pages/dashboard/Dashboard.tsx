@@ -32,26 +32,6 @@ export default function Dashboard() {
             </Link>
           </div>
         )}
-
-        <div className="col-12 col-sm-6 col-lg-4">
-          <div className="card h-100 shadow-sm border-0 opacity-75" style={{ borderRadius: "var(--itm-radius-card)" }}>
-            <div className="card-body">
-              <i className="bi bi-person-vcard-fill fs-3" style={{ color: "var(--itm-muted)" }} aria-hidden="true" />
-              <h5 className="card-title mt-3 mb-1">Candidate Master</h5>
-              <p className="card-text text-muted small mb-0">Coming soon.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-sm-6 col-lg-4">
-          <div className="card h-100 shadow-sm border-0 opacity-75" style={{ borderRadius: "var(--itm-radius-card)" }}>
-            <div className="card-body">
-              <i className="bi bi-bar-chart-fill fs-3" style={{ color: "var(--itm-muted)" }} aria-hidden="true" />
-              <h5 className="card-title mt-3 mb-1">Search & Reports</h5>
-              <p className="card-text text-muted small mb-0">Coming soon.</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

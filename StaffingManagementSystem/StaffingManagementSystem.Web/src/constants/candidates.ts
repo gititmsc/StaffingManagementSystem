@@ -52,8 +52,14 @@ export const GENDER_LABELS: Record<string, string> = Object.fromEntries(
 /** Matches the CreateCandidateRequestDto/UpdateCandidateRequestDto RegularExpression rule. */
 export const PHONE_PATTERN = /^\+?[0-9\s\-()]{7,20}$/;
 
-/** Roles allowed to create/edit/delete candidates (RMS SRS Section 7 permission matrix). */
-export const CANDIDATE_EDIT_ROLES = ["SuperAdmin", "HRAdmin", "Recruiter"];
+/**
+ * Roles allowed to create/edit/delete candidates and their attachments/resume — also the
+ * roles allowed to download attachments/resume (Viewer can view candidates but not download).
+ */
+export const CANDIDATE_EDIT_ROLES = ["Admin", "Recruiter"];
 
-/** Every authenticated role can view the candidate master (read-only for the rest). */
-export const CANDIDATE_VIEW_ROLES = ["SuperAdmin", "HRAdmin", "Recruiter", "HiringManager", "Viewer"];
+/** Every authenticated role can view the candidate master (read-only for Viewer). */
+export const CANDIDATE_VIEW_ROLES = ["Admin", "Recruiter", "Viewer"];
+
+/** Reports are available to Admin and Recruiter only — Viewer has no reporting access. */
+export const REPORT_VIEW_ROLES = ["Admin", "Recruiter"];

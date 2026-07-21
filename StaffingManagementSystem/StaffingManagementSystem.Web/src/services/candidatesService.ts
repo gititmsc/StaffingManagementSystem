@@ -94,6 +94,12 @@ export interface CandidateDetail {
   otherSourceText?: string | null;
   ownerRecruiterId: string;
   ownerRecruiterName?: string | null;
+  /** Only present when the signed-in user is Admin — null/omitted for Recruiter and Viewer. */
+  costToCompany?: number | null;
+  /** Visible to every role. */
+  costToVendor?: number | null;
+  /** Only present when the signed-in user is Admin or Recruiter — null/omitted for Viewer. */
+  currentSalary?: number | null;
   totalExperienceYears: number;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
@@ -153,6 +159,10 @@ export interface SaveCandidateRequest {
   source?: string;
   otherSourceText?: string;
   ownerRecruiterId?: string;
+  /** Admin-only field. Ignored by the backend if submitted by a Recruiter. */
+  costToCompany?: number;
+  costToVendor?: number;
+  currentSalary?: number;
   /** Only meaningful on create — the backend records it as the candidate's first note. */
   initialNote?: string;
   skills: SkillInput[];

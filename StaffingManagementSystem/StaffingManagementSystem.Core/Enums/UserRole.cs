@@ -6,19 +6,17 @@ namespace StaffingManagementSystem.Core.Enums
     /// </summary>
     public enum UserRole
     {
-        /// <summary>Full system access, including user/role administration and system configuration.</summary>
-        SuperAdmin = 1,
+        /// <summary>Full system access: user/role administration, candidates and reports.</summary>
+        Admin = 1,
 
-        /// <summary>Manages candidates, requisitions, reports and recruiters; no system configuration access.</summary>
-        HRAdmin = 2,
+        /// <summary>Full candidate CRUD and report access; no user/role administration.</summary>
+        Recruiter = 2,
 
-        /// <summary>Adds/edits candidates, searches the database, manages assigned requisitions and pipeline stages.</summary>
-        Recruiter = 3,
-
-        /// <summary>Views candidates/pipeline for their own requisitions and gives interview feedback.</summary>
-        HiringManager = 4,
-
-        /// <summary>View-only access to candidate profiles and reports.</summary>
-        Viewer = 5
+        /// <summary>
+        /// View-only access to the candidate list/detail pages. Cannot access reports or
+        /// attachment/resume downloads. Name, Email, LinkedIn URL and Phone are masked
+        /// ("XXXX") in every response served to this role — see CandidateService masking.
+        /// </summary>
+        Viewer = 3
     }
 }

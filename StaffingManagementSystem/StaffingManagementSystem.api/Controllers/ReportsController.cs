@@ -12,13 +12,13 @@ namespace StaffingManagementSystem.Api.Controllers
 {
     /// <summary>
     /// Advanced candidate search and the Phase 1 standard reports (RMS SRS 3.4 Search &amp;
-    /// Reporting / Section 6). Read-only for every authenticated role, per the Section 7
-    /// permission matrix.
+    /// Reporting / Section 6). Available to Admin and Recruiter only — Viewer has no
+    /// reporting access.
     /// </summary>
     [ApiController]
     [Route("api/reports")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Roles = "Admin,Recruiter")]
     public sealed class ReportsController : ControllerBase
     {
         private readonly ICandidateSearchService _searchService;

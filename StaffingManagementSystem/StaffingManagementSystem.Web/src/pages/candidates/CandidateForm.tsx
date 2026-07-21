@@ -30,6 +30,9 @@ interface FormValues {
   source: string;
   otherSourceText: string;
   ownerRecruiterId: string;
+  costToCompany: string;
+  costToVendor: string;
+  currentSalary: string;
   recruiterNote: string;
   skills: { skillName: string; proficiency: string; yearsOfExperience: string }[];
   experience: {
@@ -74,6 +77,9 @@ const EMPTY_FORM: FormValues = {
   source: "",
   otherSourceText: "",
   ownerRecruiterId: "",
+  costToCompany: "",
+  costToVendor: "",
+  currentSalary: "",
   recruiterNote: "",
   skills: [],
   experience: [],
@@ -100,6 +106,7 @@ export default function CandidateForm() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const canReassignOwner = !!currentUser && USER_MANAGEMENT_VIEW_ROLES.includes(currentUser.role);
+  const isAdmin = currentUser?.role === "Admin";
 
   const [isLoading, setIsLoading] = useState(isEdit);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -175,6 +182,9 @@ export default function CandidateForm() {
         source: c.source ?? "",
         otherSourceText: c.otherSourceText ?? "",
         ownerRecruiterId: c.ownerRecruiterId,
+        costToCompany: c.costToCompany != null ? String(c.costToCompany) : "",
+        costToVendor: c.costToVendor != null ? String(c.costToVendor) : "",
+        currentSalary: c.currentSalary != null ? String(c.currentSalary) : "",
         recruiterNote: "",
         skills: c.skills.map((s) => ({
           skillName: s.skillName,
@@ -235,6 +245,9 @@ export default function CandidateForm() {
       source: values.source || undefined,
       otherSourceText: values.source === "Other" ? values.otherSourceText.trim() || undefined : undefined,
       ownerRecruiterId: canReassignOwner && values.ownerRecruiterId ? values.ownerRecruiterId : undefined,
+      costToCompany: isAdmin && values.costToCompany.trim() ? Number(values.costToCompany) : undefined,
+      costToVendor: values.costToVendor.trim() ? Number(values.costToVendor) : undefined,
+      currentSalary: values.currentSalary.trim() ? Number(values.currentSalary) : undefined,
       initialNote: !isEdit && values.recruiterNote.trim() ? values.recruiterNote.trim() : undefined,
       skills: values.skills
         .filter((s) => s.skillName.trim())
@@ -525,6 +538,61 @@ export default function CandidateForm() {
                 </select>
               </div>
             )}
+          </div>
+
+          <div className="row g-3 mt-1">
+            {isAdmin && (
+              <div className="col-12 col-md-4">
+                <label className="candidate-form-label" htmlFor="costToCompany">
+                  Cost to Company
+                </label>
+                <input
+                  id="costToCompany"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={`form-control ${errors.costToCompany ? "is-invalid" : ""}`}
+                  {...register("costToCompany", {
+                    min: { value: 0, message: "Must be zero or greater." },
+                  })}
+                />
+                {errors.costToCompany && <div className="invalid-feedback">{errors.costToCompany.message}</div>}
+              </div>
+            )}
+
+            <div className="col-12 col-md-4">
+              <label className="candidate-form-label" htmlFor="costToVendor">
+                Cost to Vendor
+              </label>
+              <input
+                id="costToVendor"
+                type="number"
+                min="0"
+                step="0.01"
+                className={`form-control ${errors.costToVendor ? "is-invalid" : ""}`}
+                {...register("costToVendor", {
+                  min: { value: 0, message: "Must be zero or greater." },
+                })}
+              />
+              {errors.costToVendor && <div className="invalid-feedback">{errors.costToVendor.message}</div>}
+            </div>
+
+            <div className="col-12 col-md-4">
+              <label className="candidate-form-label" htmlFor="currentSalary">
+                Current Salary
+              </label>
+              <input
+                id="currentSalary"
+                type="number"
+                min="0"
+                step="0.01"
+                className={`form-control ${errors.currentSalary ? "is-invalid" : ""}`}
+                {...register("currentSalary", {
+                  min: { value: 0, message: "Must be zero or greater." },
+                })}
+              />
+              {errors.currentSalary && <div className="invalid-feedback">{errors.currentSalary.message}</div>}
+            </div>
           </div>
         </section>
 

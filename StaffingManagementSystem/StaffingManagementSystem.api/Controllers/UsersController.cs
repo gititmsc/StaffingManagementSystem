@@ -9,8 +9,7 @@ namespace StaffingManagementSystem.Api.Controllers
 {
     /// <summary>
     /// User &amp; role administration endpoints — thin controller, all logic in IUserManagementService.
-    /// Access follows the Section 7 permission matrix: SuperAdmin has full CRUD, HRAdmin is
-    /// read-only, every other role is denied.
+    /// Admin-only; Recruiter and Viewer have no access to user management.
     /// </summary>
     [ApiController]
     [Route("api/users")]
@@ -27,7 +26,7 @@ namespace StaffingManagementSystem.Api.Controllers
 
         /// <summary>Lists every non-deleted user.</summary>
         [HttpGet]
-        [Authorize(Roles = "SuperAdmin,HRAdmin")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ApiResponse<List<UserListItemDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll()
         {
@@ -37,7 +36,7 @@ namespace StaffingManagementSystem.Api.Controllers
 
         /// <summary>Gets a single user by id.</summary>
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "SuperAdmin,HRAdmin")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ApiResponse<UserListItemDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<UserListItemDto>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id)
@@ -51,7 +50,7 @@ namespace StaffingManagementSystem.Api.Controllers
         /// redeems the "set up your password" email this triggers.
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ApiResponse<UserListItemDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<UserListItemDto>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateUserRequestDto request)
@@ -72,7 +71,7 @@ namespace StaffingManagementSystem.Api.Controllers
 
         /// <summary>Updates a user's profile fields and role.</summary>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ApiResponse<UserListItemDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<UserListItemDto>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserRequestDto request)
@@ -93,7 +92,7 @@ namespace StaffingManagementSystem.Api.Controllers
 
         /// <summary>Activates or deactivates a user. An admin cannot deactivate their own account.</summary>
         [HttpPatch("{id:guid}/status")]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> SetStatus(Guid id, [FromBody] SetUserStatusRequestDto request)
@@ -114,7 +113,7 @@ namespace StaffingManagementSystem.Api.Controllers
 
         /// <summary>Soft-deletes a user. An admin cannot delete their own account.</summary>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Delete(Guid id)

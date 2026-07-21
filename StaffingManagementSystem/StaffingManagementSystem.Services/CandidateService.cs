@@ -19,16 +19,18 @@ namespace StaffingManagementSystem.Services
             _userRepository = userRepository;
         }
 
-        public async Task<ApiResponse<List<CandidateListItemDto>>> GetAllCandidatesAsync()
+        public async Task<ApiResponse<List<CandidateListItemDto>>> GetAllCandidatesAsync(string actorRole)
         {
             var candidates = await _candidateRepository.GetAllAsync();
             var userNames = await GetUserNameLookupAsync();
 
-            return ApiResponse<List<CandidateListItemDto>>.SuccessResponse(
-                candidates.Select(c => MapToListItemDto(c, userNames)).ToList());
+            var dtos = candidates.Select(c => MapToListItemDto(c, userNames)).ToList();
+            dtos.ForEach(dto => ApplyFieldVisibility(dto, actorRole));
+
+            return ApiResponse<List<CandidateListItemDto>>.SuccessResponse(dtos);
         }
 
-        public async Task<ApiResponse<CandidateDetailDto>> GetCandidateByIdAsync(Guid id)
+        public async Task<ApiResponse<CandidateDetailDto>> GetCandidateByIdAsync(Guid id, string actorRole)
         {
             var candidate = await _candidateRepository.GetByIdAsync(id);
             if (candidate is null)
@@ -37,10 +39,13 @@ namespace StaffingManagementSystem.Services
             }
 
             var userNames = await GetUserNameLookupAsync();
-            return ApiResponse<CandidateDetailDto>.SuccessResponse(MapToDetailDto(candidate, userNames));
+            var dto = MapToDetailDto(candidate, userNames);
+            ApplyFieldVisibility(dto, actorRole);
+
+            return ApiResponse<CandidateDetailDto>.SuccessResponse(dto);
         }
 
-        public async Task<ApiResponse<CandidateDetailDto>> CreateCandidateAsync(CreateCandidateRequestDto request, Guid ownerRecruiterId)
+        public async Task<ApiResponse<CandidateDetailDto>> CreateCandidateAsync(CreateCandidateRequestDto request, Guid ownerRecruiterId, string actorRole)
         {
             if (!TryParseRequiredEnum<CandidateStatus>(request.Status, out var status))
             {
@@ -74,6 +79,9 @@ namespace StaffingManagementSystem.Services
                 Source = source,
                 OtherSourceText = source == CandidateSource.Other ? Norm(request.OtherSourceText) : null,
                 OwnerRecruiterId = ownerRecruiterId,
+                CostToCompany = IsAdmin(actorRole) ? request.CostToCompany : null,
+                CostToVendor = request.CostToVendor,
+                CurrentSalary = request.CurrentSalary,
                 TotalExperienceYears = CalculateTotalExperienceYears(experience),
                 CreatedAtUtc = DateTime.UtcNow,
                 Skills = skills,
@@ -100,6 +108,7 @@ namespace StaffingManagementSystem.Services
             var refreshed = await _candidateRepository.GetByIdAsync(candidateId);
             var userNames = await GetUserNameLookupAsync();
             var dto = MapToDetailDto(refreshed ?? candidate, userNames);
+            ApplyFieldVisibility(dto, actorRole);
 
             var message = isDuplicateEmail
                 ? "Candidate created. Note: another candidate already uses this email address."
@@ -108,7 +117,7 @@ namespace StaffingManagementSystem.Services
             return ApiResponse<CandidateDetailDto>.SuccessResponse(dto, message);
         }
 
-        public async Task<ApiResponse<CandidateDetailDto>> UpdateCandidateAsync(Guid id, UpdateCandidateRequestDto request)
+        public async Task<ApiResponse<CandidateDetailDto>> UpdateCandidateAsync(Guid id, UpdateCandidateRequestDto request, string actorRole)
         {
             var existing = await _candidateRepository.GetByIdAsync(id);
             if (existing is null)
@@ -146,6 +155,11 @@ namespace StaffingManagementSystem.Services
                 Source = source,
                 OtherSourceText = source == CandidateSource.Other ? Norm(request.OtherSourceText) : null,
                 OwnerRecruiterId = request.OwnerRecruiterId ?? existing.OwnerRecruiterId,
+                // A non-Admin editor's request never carries a real CostToCompany value (the field is
+                // hidden from them), so keep whatever an Admin previously set rather than wiping it out.
+                CostToCompany = IsAdmin(actorRole) ? request.CostToCompany : existing.CostToCompany,
+                CostToVendor = request.CostToVendor,
+                CurrentSalary = request.CurrentSalary,
                 TotalExperienceYears = CalculateTotalExperienceYears(experience),
             };
 
@@ -154,6 +168,7 @@ namespace StaffingManagementSystem.Services
             var refreshed = await _candidateRepository.GetByIdAsync(id);
             var userNames = await GetUserNameLookupAsync();
             var dto = MapToDetailDto(refreshed!, userNames);
+            ApplyFieldVisibility(dto, actorRole);
 
             var message = isDuplicateEmail
                 ? "Candidate updated. Note: another candidate already uses this email address."
@@ -359,6 +374,9 @@ namespace StaffingManagementSystem.Services
                 OtherSourceText = candidate.OtherSourceText,
                 OwnerRecruiterId = candidate.OwnerRecruiterId,
                 OwnerRecruiterName = ownerName,
+                CostToCompany = candidate.CostToCompany,
+                CostToVendor = candidate.CostToVendor,
+                CurrentSalary = candidate.CurrentSalary,
                 TotalExperienceYears = candidate.TotalExperienceYears,
                 CreatedAtUtc = candidate.CreatedAtUtc,
                 UpdatedAtUtc = candidate.UpdatedAtUtc,
@@ -429,5 +447,53 @@ namespace StaffingManagementSystem.Services
         }
 
         private static string? Norm(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private const string MaskedValue = "XXXX";
+
+        private static bool IsAdmin(string role) => string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+        private static bool IsViewer(string role) => string.Equals(role, "Viewer", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Applies every role-based field restriction to a list-item DTO before it leaves the
+        /// service: Viewer gets Name/Email/Phone masked as "XXXX"; CostToCompany is cleared
+        /// unless Admin; CurrentSalary is cleared unless Admin or Recruiter. CostToVendor is
+        /// visible to everyone, per the current permission model.
+        /// </summary>
+        private static void ApplyFieldVisibility(CandidateListItemDto dto, string actorRole)
+        {
+            if (IsViewer(actorRole))
+            {
+                dto.FullName = MaskedValue;
+                dto.Email = MaskedValue;
+                dto.Phone = dto.Phone is null ? null : MaskedValue;
+            }
+        }
+
+        /// <summary>
+        /// Applies every role-based field restriction to a detail DTO before it leaves the
+        /// service: Viewer gets Name/Email/Phone/LinkedIn masked as "XXXX"; CostToCompany is
+        /// cleared unless Admin; CurrentSalary is cleared unless Admin or Recruiter.
+        /// CostToVendor is visible to everyone, per the current permission model.
+        /// </summary>
+        private static void ApplyFieldVisibility(CandidateDetailDto dto, string actorRole)
+        {
+            if (IsViewer(actorRole))
+            {
+                dto.FullName = MaskedValue;
+                dto.Email = MaskedValue;
+                dto.Phone = dto.Phone is null ? null : MaskedValue;
+                dto.LinkedInUrl = dto.LinkedInUrl is null ? null : MaskedValue;
+            }
+
+            if (!IsAdmin(actorRole))
+            {
+                dto.CostToCompany = null;
+            }
+
+            if (!IsAdmin(actorRole) && !string.Equals(actorRole, "Recruiter", StringComparison.OrdinalIgnoreCase))
+            {
+                dto.CurrentSalary = null;
+            }
+        }
     }
 }

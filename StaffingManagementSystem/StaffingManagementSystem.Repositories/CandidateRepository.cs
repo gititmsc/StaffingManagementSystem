@@ -107,6 +107,9 @@ namespace StaffingManagementSystem.Repositories
                     .SetProperty(c => c.OtherSourceText, candidate.OtherSourceText)
                     .SetProperty(c => c.LinkedInUrl, candidate.LinkedInUrl)
                     .SetProperty(c => c.OwnerRecruiterId, candidate.OwnerRecruiterId)
+                    .SetProperty(c => c.CostToCompany, candidate.CostToCompany)
+                    .SetProperty(c => c.CostToVendor, candidate.CostToVendor)
+                    .SetProperty(c => c.CurrentSalary, candidate.CurrentSalary)
                     .SetProperty(c => c.TotalExperienceYears, candidate.TotalExperienceYears)
                     .SetProperty(c => c.UpdatedAtUtc, DateTime.UtcNow));
 

@@ -11,7 +11,7 @@ import Reports from "@/pages/reports/Reports";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { USER_MANAGEMENT_VIEW_ROLES } from "@/constants/roles";
-import { CANDIDATE_EDIT_ROLES, CANDIDATE_VIEW_ROLES } from "@/constants/candidates";
+import { CANDIDATE_EDIT_ROLES, CANDIDATE_VIEW_ROLES, REPORT_VIEW_ROLES } from "@/constants/candidates";
 
 export function AppRoutes() {
   return (
@@ -83,7 +83,7 @@ export function AppRoutes() {
       <Route
         path="/reports"
         element={
-          <ProtectedRoute roles={CANDIDATE_VIEW_ROLES}>
+          <ProtectedRoute roles={REPORT_VIEW_ROLES}>
             <AppLayout>
               <Reports />
             </AppLayout>

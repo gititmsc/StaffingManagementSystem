@@ -33,6 +33,15 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
 
         public string? OwnerRecruiterName { get; set; }
 
+        /// <summary>Null unless the caller is Admin.</summary>
+        public decimal? CostToCompany { get; set; }
+
+        /// <summary>Visible to every role.</summary>
+        public decimal? CostToVendor { get; set; }
+
+        /// <summary>Null unless the caller is Admin or Recruiter.</summary>
+        public decimal? CurrentSalary { get; set; }
+
         public decimal TotalExperienceYears { get; set; }
 
         public DateTime CreatedAtUtc { get; set; }

@@ -52,6 +52,16 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
         [MaxLength(2000)]
         public string? InitialNote { get; set; }
 
+        /// <summary>Admin-only field. Ignored (not persisted) if submitted by a Recruiter.</summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Cost to company must be zero or greater.")]
+        public decimal? CostToCompany { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Cost to vendor must be zero or greater.")]
+        public decimal? CostToVendor { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Current salary must be zero or greater.")]
+        public decimal? CurrentSalary { get; set; }
+
         public List<CandidateSkillInputDto> Skills { get; set; } = new();
 
         public List<CandidateExperienceInputDto> Experience { get; set; } = new();

@@ -10,8 +10,9 @@ namespace StaffingManagementSystem.Api.Controllers
 {
     /// <summary>
     /// Candidate master endpoints — thin controller, all logic in ICandidateService.
-    /// Access follows the Section 7 permission matrix: SuperAdmin, HRAdmin and Recruiter have
-    /// full CRUD; HiringManager and Viewer are read-only.
+    /// Admin and Recruiter have full CRUD and attachment access; Viewer is read-only on the
+    /// list/detail endpoints and denied attachment/resume downloads entirely. Viewer responses
+    /// also have Name/Email/LinkedIn/Phone masked by CandidateService before they ever reach here.
     /// </summary>
     [ApiController]
     [Route("api/candidates")]
@@ -19,7 +20,7 @@ namespace StaffingManagementSystem.Api.Controllers
     [Authorize]
     public sealed class CandidatesController : ControllerBase
     {
-        private const string EditRoles = "SuperAdmin,HRAdmin,Recruiter";
+        private const string EditRoles = "Admin,Recruiter";
 
         private readonly ICandidateService _candidateService;
         private readonly ICandidateAttachmentService _attachmentService;
@@ -35,7 +36,7 @@ namespace StaffingManagementSystem.Api.Controllers
         [ProducesResponseType(typeof(ApiResponse<List<CandidateListItemDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _candidateService.GetAllCandidatesAsync();
+            var result = await _candidateService.GetAllCandidatesAsync(GetActingRole());
             return Ok(result);
         }
 
@@ -45,7 +46,7 @@ namespace StaffingManagementSystem.Api.Controllers
         [ProducesResponseType(typeof(ApiResponse<CandidateDetailDto>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var result = await _candidateService.GetCandidateByIdAsync(id);
+            var result = await _candidateService.GetCandidateByIdAsync(id, GetActingRole());
             return result.Success ? Ok(result) : NotFound(result);
         }
 
@@ -66,7 +67,7 @@ namespace StaffingManagementSystem.Api.Controllers
                 return BadRequest(ApiResponse<CandidateDetailDto>.FailureResponse("Validation failed.", errors));
             }
 
-            var result = await _candidateService.CreateCandidateAsync(request, GetActingUserId());
+            var result = await _candidateService.CreateCandidateAsync(request, GetActingUserId(), GetActingRole());
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -87,7 +88,7 @@ namespace StaffingManagementSystem.Api.Controllers
                 return BadRequest(ApiResponse<CandidateDetailDto>.FailureResponse("Validation failed.", errors));
             }
 
-            var result = await _candidateService.UpdateCandidateAsync(id, request);
+            var result = await _candidateService.UpdateCandidateAsync(id, request, GetActingRole());
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -179,8 +180,9 @@ namespace StaffingManagementSystem.Api.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        /// <summary>Downloads a candidate attachment (resume or general document).</summary>
+        /// <summary>Downloads a candidate attachment (resume or general document). Not available to Viewer.</summary>
         [HttpGet("{id:guid}/attachments/{attachmentId:guid}/download")]
+        [Authorize(Roles = EditRoles)]
         [Produces("application/octet-stream")]
         public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId)
         {
@@ -206,5 +208,7 @@ namespace StaffingManagementSystem.Api.Controllers
 
         private Guid GetActingUserId()
             => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        private string GetActingRole() => User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
     }
 }

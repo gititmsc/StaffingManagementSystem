@@ -51,6 +51,16 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
         /// <summary>Reassigns the owning recruiter when provided; keeps the existing owner when null.</summary>
         public Guid? OwnerRecruiterId { get; set; }
 
+        /// <summary>Admin-only field. Ignored (not persisted) if submitted by a Recruiter.</summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Cost to company must be zero or greater.")]
+        public decimal? CostToCompany { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Cost to vendor must be zero or greater.")]
+        public decimal? CostToVendor { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Current salary must be zero or greater.")]
+        public decimal? CurrentSalary { get; set; }
+
         public List<CandidateSkillInputDto> Skills { get; set; } = new();
 
         public List<CandidateExperienceInputDto> Experience { get; set; } = new();

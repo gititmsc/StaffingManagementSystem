@@ -42,6 +42,15 @@ namespace StaffingManagementSystem.Core.Entities
         /// <summary>Recruiter who owns/added this candidate (RMS SRS 3.3.7).</summary>
         public Guid OwnerRecruiterId { get; set; }
 
+        /// <summary>Internal cost-to-company figure. Visible/editable to Admin only.</summary>
+        public decimal? CostToCompany { get; set; }
+
+        /// <summary>Cost billed to/by the vendor. Visible to every role; editable by Admin/Recruiter.</summary>
+        public decimal? CostToVendor { get; set; }
+
+        /// <summary>Candidate's current salary. Visible/editable to Admin and Recruiter only.</summary>
+        public decimal? CurrentSalary { get; set; }
+
         /// <summary>
         /// Auto-calculated from <see cref="Experience"/> whenever the candidate is saved, so
         /// experience-wise search/reports (RMS SRS 3.4) don't need to recompute it per query.

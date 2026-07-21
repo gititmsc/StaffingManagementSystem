@@ -26,7 +26,7 @@ namespace StaffingManagementSystem.Core.DTOs.Users
         [MaxLength(100, ErrorMessage = "Department cannot exceed 100 characters.")]
         public string? Department { get; set; }
 
-        /// <summary>One of: SuperAdmin, HRAdmin, Recruiter, HiringManager, Viewer.</summary>
+        /// <summary>One of: Admin, Recruiter, Viewer.</summary>
         [Required(ErrorMessage = "Role is required.")]
         public string Role { get; set; } = string.Empty;
     }

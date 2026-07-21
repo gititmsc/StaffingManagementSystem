@@ -238,12 +238,14 @@ export default function CandidateDetail() {
           <div>
             <dt>LinkedIn</dt>
             <dd>
-              {candidate.linkedInUrl ? (
+              {!candidate.linkedInUrl ? (
+                "—"
+              ) : candidate.linkedInUrl === "XXXX" ? (
+                "XXXX"
+              ) : (
                 <a href={candidate.linkedInUrl} target="_blank" rel="noreferrer">
                   View Profile <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
                 </a>
-              ) : (
-                "—"
               )}
             </dd>
           </div>
@@ -263,6 +265,22 @@ export default function CandidateDetail() {
             <dt>Total Experience</dt>
             <dd>{candidate.totalExperienceYears} yrs</dd>
           </div>
+          {currentUser?.role === "Admin" && (
+            <div>
+              <dt>Cost to Company</dt>
+              <dd>{candidate.costToCompany != null ? candidate.costToCompany.toLocaleString() : "—"}</dd>
+            </div>
+          )}
+          <div>
+            <dt>Cost to Vendor</dt>
+            <dd>{candidate.costToVendor != null ? candidate.costToVendor.toLocaleString() : "—"}</dd>
+          </div>
+          {(currentUser?.role === "Admin" || currentUser?.role === "Recruiter") && (
+            <div>
+              <dt>Current Salary</dt>
+              <dd>{candidate.currentSalary != null ? candidate.currentSalary.toLocaleString() : "—"}</dd>
+            </div>
+          )}
           <div>
             <dt>Added</dt>
             <dd>{formatDate(candidate.createdAtUtc)}</dd>
@@ -391,15 +409,17 @@ export default function CandidateDetail() {
               </div>
             </div>
             <div className="candidate-detail-attachment__actions">
-              <button
-                type="button"
-                className="candidate-detail-icon-btn"
-                onClick={() => handleDownload(resume)}
-                aria-label={`Download ${resume.fileName}`}
-                title="Download"
-              >
-                <i className="bi bi-download" aria-hidden="true" />
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="candidate-detail-icon-btn"
+                  onClick={() => handleDownload(resume)}
+                  aria-label={`Download ${resume.fileName}`}
+                  title="Download"
+                >
+                  <i className="bi bi-download" aria-hidden="true" />
+                </button>
+              )}
               {canEdit && (
                 <button
                   type="button"
@@ -446,15 +466,17 @@ export default function CandidateDetail() {
                   </div>
                 </div>
                 <div className="candidate-detail-attachment__actions">
-                  <button
-                    type="button"
-                    className="candidate-detail-icon-btn"
-                    onClick={() => handleDownload(attachment)}
-                    aria-label={`Download ${attachment.fileName}`}
-                    title="Download"
-                  >
-                    <i className="bi bi-download" aria-hidden="true" />
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      className="candidate-detail-icon-btn"
+                      onClick={() => handleDownload(attachment)}
+                      aria-label={`Download ${attachment.fileName}`}
+                      title="Download"
+                    >
+                      <i className="bi bi-download" aria-hidden="true" />
+                    </button>
+                  )}
                   {canEdit && (
                     <button
                       type="button"

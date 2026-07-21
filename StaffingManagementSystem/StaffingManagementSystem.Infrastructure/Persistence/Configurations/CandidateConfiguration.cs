@@ -65,6 +65,15 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
             builder.Property(c => c.OwnerRecruiterId)
                 .IsRequired();
 
+            builder.Property(c => c.CostToCompany)
+                .HasColumnType("decimal(12,2)");
+
+            builder.Property(c => c.CostToVendor)
+                .HasColumnType("decimal(12,2)");
+
+            builder.Property(c => c.CurrentSalary)
+                .HasColumnType("decimal(12,2)");
+
             builder.Property(c => c.TotalExperienceYears)
                 .HasColumnType("decimal(5,2)")
                 .HasDefaultValue(0m);
