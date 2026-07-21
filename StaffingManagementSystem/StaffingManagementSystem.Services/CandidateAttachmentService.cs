@@ -3,6 +3,7 @@ using StaffingManagementSystem.Core.Common;
 using StaffingManagementSystem.Core.Configuration;
 using StaffingManagementSystem.Core.DTOs.Candidates;
 using StaffingManagementSystem.Core.Entities;
+using StaffingManagementSystem.Core.Enums;
 using StaffingManagementSystem.Core.Interfaces;
 using StaffingManagementSystem.Repositories.Interfaces;
 using StaffingManagementSystem.Services.Interfaces;
@@ -46,7 +47,16 @@ namespace StaffingManagementSystem.Services
                 attachments.Select(a => MapToDto(a, userNames)).ToList());
         }
 
-        public async Task<ApiResponse<CandidateAttachmentDto>> UploadAsync(
+        public Task<ApiResponse<CandidateAttachmentDto>> UploadAsync(
+            Guid candidateId,
+            string fileName,
+            string contentType,
+            long fileSizeBytes,
+            Stream content,
+            Guid uploadedByUserId)
+            => SaveAttachmentAsync(candidateId, fileName, contentType, fileSizeBytes, content, uploadedByUserId, CandidateAttachmentType.Other);
+
+        public async Task<ApiResponse<CandidateAttachmentDto>> UploadResumeAsync(
             Guid candidateId,
             string fileName,
             string contentType,
@@ -59,46 +69,18 @@ namespace StaffingManagementSystem.Services
                 return ApiResponse<CandidateAttachmentDto>.FailureResponse("Candidate not found.", ["Candidate not found."]);
             }
 
-            if (fileSizeBytes <= 0)
+            // Replace any existing resume — a candidate has at most one active resume, kept
+            // separate from general attachments.
+            var existingAttachments = await _attachmentRepository.GetByCandidateIdAsync(candidateId);
+            var existingResume = existingAttachments.FirstOrDefault(a => a.Type == CandidateAttachmentType.Resume);
+
+            if (existingResume is not null)
             {
-                return ApiResponse<CandidateAttachmentDto>.FailureResponse("The selected file is empty.", ["The selected file is empty."]);
+                await _attachmentRepository.DeleteAsync(existingResume);
+                _fileStorageService.Delete(existingResume.StoredPath);
             }
 
-            if (fileSizeBytes > _settings.MaxFileSizeBytes)
-            {
-                var maxMb = _settings.MaxFileSizeBytes / (1024 * 1024);
-                return ApiResponse<CandidateAttachmentDto>.FailureResponse(
-                    $"File is too large. Maximum allowed size is {maxMb} MB.",
-                    [$"File is too large. Maximum allowed size is {maxMb} MB."]);
-            }
-
-            var extension = Path.GetExtension(fileName).ToLowerInvariant();
-            if (string.IsNullOrEmpty(extension) || !_settings.AllowedExtensions.Contains(extension))
-            {
-                var allowed = string.Join(", ", _settings.AllowedExtensions);
-                return ApiResponse<CandidateAttachmentDto>.FailureResponse(
-                    $"File type not allowed. Allowed types: {allowed}",
-                    [$"File type not allowed. Allowed types: {allowed}"]);
-            }
-
-            var storedPath = await _fileStorageService.SaveAsync(candidateId, fileName, content);
-
-            var attachment = new CandidateAttachment
-            {
-                Id = Guid.NewGuid(),
-                CandidateId = candidateId,
-                FileName = fileName,
-                StoredPath = storedPath,
-                ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType,
-                FileSizeBytes = fileSizeBytes,
-                UploadedByUserId = uploadedByUserId,
-                UploadedAtUtc = DateTime.UtcNow,
-            };
-
-            await _attachmentRepository.AddAsync(attachment);
-
-            var userNames = await GetUserNameLookupAsync();
-            return ApiResponse<CandidateAttachmentDto>.SuccessResponse(MapToDto(attachment, userNames), "Attachment uploaded.");
+            return await SaveAttachmentAsync(candidateId, fileName, contentType, fileSizeBytes, content, uploadedByUserId, CandidateAttachmentType.Resume, skipExistsCheck: true);
         }
 
         public async Task<CandidateAttachmentDownload?> GetForDownloadAsync(Guid attachmentId)
@@ -137,6 +119,67 @@ namespace StaffingManagementSystem.Services
             return ApiResponse<object>.SuccessResponse(new { }, "Attachment deleted.");
         }
 
+        // ---------- helpers ----------
+
+        private async Task<ApiResponse<CandidateAttachmentDto>> SaveAttachmentAsync(
+            Guid candidateId,
+            string fileName,
+            string contentType,
+            long fileSizeBytes,
+            Stream content,
+            Guid uploadedByUserId,
+            CandidateAttachmentType type,
+            bool skipExistsCheck = false)
+        {
+            if (!skipExistsCheck && !await _candidateRepository.ExistsAsync(candidateId))
+            {
+                return ApiResponse<CandidateAttachmentDto>.FailureResponse("Candidate not found.", ["Candidate not found."]);
+            }
+
+            if (fileSizeBytes <= 0)
+            {
+                return ApiResponse<CandidateAttachmentDto>.FailureResponse("The selected file is empty.", ["The selected file is empty."]);
+            }
+
+            if (fileSizeBytes > _settings.MaxFileSizeBytes)
+            {
+                var maxMb = _settings.MaxFileSizeBytes / (1024 * 1024);
+                return ApiResponse<CandidateAttachmentDto>.FailureResponse(
+                    $"File is too large. Maximum allowed size is {maxMb} MB.",
+                    [$"File is too large. Maximum allowed size is {maxMb} MB."]);
+            }
+
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension) || !_settings.AllowedExtensions.Contains(extension))
+            {
+                var allowed = string.Join(", ", _settings.AllowedExtensions);
+                return ApiResponse<CandidateAttachmentDto>.FailureResponse(
+                    $"File type not allowed. Allowed types: {allowed}",
+                    [$"File type not allowed. Allowed types: {allowed}"]);
+            }
+
+            var storedPath = await _fileStorageService.SaveAsync(candidateId, fileName, content);
+
+            var attachment = new CandidateAttachment
+            {
+                Id = Guid.NewGuid(),
+                CandidateId = candidateId,
+                Type = type,
+                FileName = fileName,
+                StoredPath = storedPath,
+                ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType,
+                FileSizeBytes = fileSizeBytes,
+                UploadedByUserId = uploadedByUserId,
+                UploadedAtUtc = DateTime.UtcNow,
+            };
+
+            await _attachmentRepository.AddAsync(attachment);
+
+            var userNames = await GetUserNameLookupAsync();
+            var successMessage = type == CandidateAttachmentType.Resume ? "Resume uploaded." : "Attachment uploaded.";
+            return ApiResponse<CandidateAttachmentDto>.SuccessResponse(MapToDto(attachment, userNames), successMessage);
+        }
+
         private async Task<Dictionary<Guid, string>> GetUserNameLookupAsync()
         {
             var users = await _userRepository.GetAllAsync();
@@ -147,6 +190,7 @@ namespace StaffingManagementSystem.Services
             => new()
             {
                 Id = attachment.Id,
+                Type = attachment.Type.ToString(),
                 FileName = attachment.FileName,
                 ContentType = attachment.ContentType,
                 FileSizeBytes = attachment.FileSizeBytes,

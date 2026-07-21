@@ -7,6 +7,8 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
 
         public string FullName { get; set; } = string.Empty;
 
+        public string? Title { get; set; }
+
         public string Email { get; set; } = string.Empty;
 
         public string? Phone { get; set; }
@@ -19,9 +21,13 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
 
         public string? Gender { get; set; }
 
+        public string? LinkedInUrl { get; set; }
+
         public string Status { get; set; } = string.Empty;
 
         public string? Source { get; set; }
+
+        public string? OtherSourceText { get; set; }
 
         public Guid OwnerRecruiterId { get; set; }
 

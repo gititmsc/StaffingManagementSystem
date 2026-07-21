@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
-import { CANDIDATE_EDIT_ROLES, CANDIDATE_STATUS_LABELS } from "@/constants/candidates";
+import { CANDIDATE_EDIT_ROLES, CANDIDATE_STATUS_LABELS, GENDER_LABELS } from "@/constants/candidates";
 import { candidatesService, type CandidateAttachment, type CandidateDetail as CandidateDetailData } from "@/services/candidatesService";
 import "./CandidateDetail.css";
 
@@ -35,7 +35,11 @@ export default function CandidateDetail() {
   const [attachments, setAttachments] = useState<CandidateAttachment[]>([]);
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
   const [pendingDeleteAttachment, setPendingDeleteAttachment] = useState<CandidateAttachment | null>(null);
+
+  const resume = attachments.find((a) => a.type === "Resume") ?? null;
+  const otherAttachments = attachments.filter((a) => a.type !== "Resume");
 
   const loadCandidate = async () => {
     if (!id) return;
@@ -89,6 +93,26 @@ export default function CandidateDetail() {
     }
 
     setIsUploading(false);
+    await loadAttachments();
+  };
+
+  const handleResumeFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !id) return;
+
+    setIsUploadingResume(true);
+    setAttachmentsError(null);
+
+    const response = await candidatesService.uploadResume(id, file);
+
+    if (!response.success) {
+      setAttachmentsError(response.message || "Unable to upload the resume.");
+      setIsUploadingResume(false);
+      return;
+    }
+
+    setIsUploadingResume(false);
     await loadAttachments();
   };
 
@@ -173,6 +197,7 @@ export default function CandidateDetail() {
           <h1 className="h4 mb-1 mt-2" style={{ color: "var(--itm-primary)" }}>
             {candidate.fullName}
           </h1>
+          {candidate.title && <p className="candidate-detail-title-line mb-1">{candidate.title}</p>}
           <p className="text-muted mb-0">{candidate.email}</p>
         </div>
         {canEdit && (
@@ -208,11 +233,27 @@ export default function CandidateDetail() {
           </div>
           <div>
             <dt>Gender</dt>
-            <dd>{candidate.gender || "—"}</dd>
+            <dd>{candidate.gender ? (GENDER_LABELS[candidate.gender] ?? candidate.gender) : "—"}</dd>
+          </div>
+          <div>
+            <dt>LinkedIn</dt>
+            <dd>
+              {candidate.linkedInUrl ? (
+                <a href={candidate.linkedInUrl} target="_blank" rel="noreferrer">
+                  View Profile <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
+                </a>
+              ) : (
+                "—"
+              )}
+            </dd>
           </div>
           <div>
             <dt>Source</dt>
-            <dd>{candidate.source || "—"}</dd>
+            <dd>
+              {candidate.source === "Other"
+                ? `Other: ${candidate.otherSourceText || "—"}`
+                : candidate.source || "—"}
+            </dd>
           </div>
           <div>
             <dt>Owner Recruiter</dt>
@@ -315,9 +356,69 @@ export default function CandidateDetail() {
         )}
       </section>
 
+      {attachmentsError && (
+        <div className="candidate-detail-alert candidate-detail-alert--inline" role="alert">
+          <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+          <span>{attachmentsError}</span>
+        </div>
+      )}
+
       <section className="candidate-detail-section">
         <div className="candidate-detail-section__header">
-          <h2 className="candidate-detail-section__title mb-0">Attachments</h2>
+          <h2 className="candidate-detail-section__title mb-0">Resume</h2>
+          {canEdit && (
+            <label className="candidate-detail-upload-btn">
+              {isUploadingResume && <span className="login-spinner" aria-hidden="true" />}
+              <i className="bi bi-upload" aria-hidden="true" />
+              {resume ? "Replace Resume" : "Upload Resume"}
+              <input type="file" hidden onChange={handleResumeFileSelected} disabled={isUploadingResume} />
+            </label>
+          )}
+        </div>
+
+        {!resume ? (
+          <p className="candidate-detail-empty">No resume uploaded yet.</p>
+        ) : (
+          <div className="candidate-detail-attachment">
+            <div className="candidate-detail-attachment__info">
+              <i className="bi bi-file-earmark-person" aria-hidden="true" />
+              <div>
+                <div className="candidate-detail-item__title">{resume.fileName}</div>
+                <div className="candidate-detail-item__meta">
+                  {formatFileSize(resume.fileSizeBytes)} · Uploaded by {resume.uploadedByName || "Unknown"} ·{" "}
+                  {formatDate(resume.uploadedAtUtc, { year: "numeric", month: "short", day: "numeric" })}
+                </div>
+              </div>
+            </div>
+            <div className="candidate-detail-attachment__actions">
+              <button
+                type="button"
+                className="candidate-detail-icon-btn"
+                onClick={() => handleDownload(resume)}
+                aria-label={`Download ${resume.fileName}`}
+                title="Download"
+              >
+                <i className="bi bi-download" aria-hidden="true" />
+              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="candidate-detail-icon-btn candidate-detail-icon-btn--danger"
+                  onClick={() => setPendingDeleteAttachment(resume)}
+                  aria-label={`Delete ${resume.fileName}`}
+                  title="Delete"
+                >
+                  <i className="bi bi-trash-fill" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="candidate-detail-section">
+        <div className="candidate-detail-section__header">
+          <h2 className="candidate-detail-section__title mb-0">Other Attachments</h2>
           {canEdit && (
             <label className="candidate-detail-upload-btn">
               {isUploading && <span className="login-spinner" aria-hidden="true" />}
@@ -328,18 +429,11 @@ export default function CandidateDetail() {
           )}
         </div>
 
-        {attachmentsError && (
-          <div className="candidate-detail-alert candidate-detail-alert--inline" role="alert">
-            <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
-            <span>{attachmentsError}</span>
-          </div>
-        )}
-
-        {attachments.length === 0 ? (
-          <p className="candidate-detail-empty">No files attached yet.</p>
+        {otherAttachments.length === 0 ? (
+          <p className="candidate-detail-empty">No other files attached yet.</p>
         ) : (
           <div className="candidate-detail-list">
-            {attachments.map((attachment) => (
+            {otherAttachments.map((attachment) => (
               <div className="candidate-detail-attachment" key={attachment.id}>
                 <div className="candidate-detail-attachment__info">
                   <i className="bi bi-file-earmark-text" aria-hidden="true" />

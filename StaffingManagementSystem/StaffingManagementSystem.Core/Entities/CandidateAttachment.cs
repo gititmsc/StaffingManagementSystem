@@ -1,3 +1,5 @@
+using StaffingManagementSystem.Core.Enums;
+
 namespace StaffingManagementSystem.Core.Entities
 {
     /// <summary>
@@ -10,6 +12,9 @@ namespace StaffingManagementSystem.Core.Entities
         public Guid Id { get; set; }
 
         public Guid CandidateId { get; set; }
+
+        /// <summary>Resume attachments are kept separate from general documents in the UI.</summary>
+        public CandidateAttachmentType Type { get; set; } = CandidateAttachmentType.Other;
 
         /// <summary>Original file name as uploaded by the user, shown in the UI.</summary>
         public string FileName { get; set; } = string.Empty;

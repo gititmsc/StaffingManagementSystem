@@ -37,6 +37,21 @@ export const EMPLOYMENT_TYPE_OPTIONS: ReadonlyArray<{ value: string; label: stri
   { value: "Internship", label: "Internship" },
 ];
 
+/** Candidate personal-details gender options. */
+export const GENDER_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "Male", label: "Male" },
+  { value: "Female", label: "Female" },
+  { value: "Other", label: "Other" },
+  { value: "PreferNotToSay", label: "Prefer not to say" },
+];
+
+export const GENDER_LABELS: Record<string, string> = Object.fromEntries(
+  GENDER_OPTIONS.map((g) => [g.value, g.label])
+);
+
+/** Matches the CreateCandidateRequestDto/UpdateCandidateRequestDto RegularExpression rule. */
+export const PHONE_PATTERN = /^\+?[0-9\s\-()]{7,20}$/;
+
 /** Roles allowed to create/edit/delete candidates (RMS SRS Section 7 permission matrix). */
 export const CANDIDATE_EDIT_ROLES = ["SuperAdmin", "HRAdmin", "Recruiter"];
 

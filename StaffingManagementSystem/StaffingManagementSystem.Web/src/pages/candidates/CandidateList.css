@@ -112,6 +112,12 @@
   text-decoration: underline;
 }
 
+.candidates-name-subtitle {
+  font-size: 0.78rem;
+  color: var(--itm-muted);
+  margin-top: 0.1rem;
+}
+
 .candidates-skill-chips {
   display: flex;
   flex-wrap: wrap;

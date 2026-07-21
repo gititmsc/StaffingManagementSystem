@@ -12,6 +12,9 @@ namespace StaffingManagementSystem.Core.Entities
 
         public string FullName { get; set; } = string.Empty;
 
+        /// <summary>Short professional headline, e.g. "10+ Years Salesforce Developer".</summary>
+        public string? Title { get; set; }
+
         public string Email { get; set; } = string.Empty;
 
         public string? Phone { get; set; }
@@ -24,9 +27,17 @@ namespace StaffingManagementSystem.Core.Entities
 
         public string? Gender { get; set; }
 
+        public string? LinkedInUrl { get; set; }
+
         public CandidateStatus Status { get; set; } = CandidateStatus.New;
 
         public CandidateSource? Source { get; set; }
+
+        /// <summary>
+        /// Free-text description of the source when <see cref="Source"/> is
+        /// <see cref="CandidateSource.Other"/>. Always null for every other source value.
+        /// </summary>
+        public string? OtherSourceText { get; set; }
 
         /// <summary>Recruiter who owns/added this candidate (RMS SRS 3.3.7).</summary>
         public Guid OwnerRecruiterId { get; set; }

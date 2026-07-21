@@ -203,6 +203,7 @@ export default function CandidateList() {
                     <button type="button" className="candidates-name-link" onClick={() => navigate(`/candidates/${row.id}`)}>
                       {row.fullName}
                     </button>
+                    {row.title && <div className="candidates-name-subtitle">{row.title}</div>}
                   </td>
                   <td>{row.email}</td>
                   <td>{row.currentLocation || "—"}</td>

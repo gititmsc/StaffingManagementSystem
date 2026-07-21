@@ -23,6 +23,9 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
+            builder.Property(c => c.Title)
+                .HasMaxLength(200);
+
             builder.Property(c => c.Email)
                 .IsRequired()
                 .HasMaxLength(256);
@@ -44,6 +47,9 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
             builder.Property(c => c.Gender)
                 .HasMaxLength(30);
 
+            builder.Property(c => c.LinkedInUrl)
+                .HasMaxLength(300);
+
             builder.Property(c => c.Status)
                 .IsRequired()
                 .HasConversion<string>()
@@ -52,6 +58,9 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
             builder.Property(c => c.Source)
                 .HasConversion<string>()
                 .HasMaxLength(30);
+
+            builder.Property(c => c.OtherSourceText)
+                .HasMaxLength(200);
 
             builder.Property(c => c.OwnerRecruiterId)
                 .IsRequired();

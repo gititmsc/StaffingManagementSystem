@@ -123,7 +123,7 @@ namespace StaffingManagementSystem.Api.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        /// <summary>Lists a candidate's attachments (resumes, documents, etc.).</summary>
+        /// <summary>Lists a candidate's attachments, including the resume if one has been uploaded.</summary>
         [HttpGet("{id:guid}/attachments")]
         [ProducesResponseType(typeof(ApiResponse<List<CandidateAttachmentDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<List<CandidateAttachmentDto>>), StatusCodes.Status400BadRequest)]
@@ -133,7 +133,7 @@ namespace StaffingManagementSystem.Api.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        /// <summary>Uploads a new attachment for a candidate.</summary>
+        /// <summary>Uploads a new general (non-resume) attachment for a candidate.</summary>
         [HttpPost("{id:guid}/attachments")]
         [Authorize(Roles = EditRoles)]
         [RequestSizeLimit(20_000_000)]
@@ -154,7 +154,32 @@ namespace StaffingManagementSystem.Api.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        /// <summary>Downloads a candidate attachment.</summary>
+        /// <summary>
+        /// Uploads (or replaces) a candidate's resume. A candidate has at most one active
+        /// resume — uploading a new one deletes the previous resume file and row. Kept as a
+        /// distinct endpoint/type so resumes never get mixed in with general attachments.
+        /// </summary>
+        [HttpPost("{id:guid}/resume")]
+        [Authorize(Roles = EditRoles)]
+        [RequestSizeLimit(20_000_000)]
+        [ProducesResponseType(typeof(ApiResponse<CandidateAttachmentDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CandidateAttachmentDto>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadResume(Guid id, IFormFile? file)
+        {
+            if (file is null || file.Length == 0)
+            {
+                return BadRequest(ApiResponse<CandidateAttachmentDto>.FailureResponse(
+                    "Please choose a file to upload.", ["Please choose a file to upload."]));
+            }
+
+            await using var stream = file.OpenReadStream();
+            var result = await _attachmentService.UploadResumeAsync(
+                id, file.FileName, file.ContentType, file.Length, stream, GetActingUserId());
+
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Downloads a candidate attachment (resume or general document).</summary>
         [HttpGet("{id:guid}/attachments/{attachmentId:guid}/download")]
         [Produces("application/octet-stream")]
         public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId)
@@ -168,7 +193,7 @@ namespace StaffingManagementSystem.Api.Controllers
             return File(download.Content, download.ContentType, download.FileName);
         }
 
-        /// <summary>Deletes a candidate attachment.</summary>
+        /// <summary>Deletes a candidate attachment (resume or general document).</summary>
         [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
         [Authorize(Roles = EditRoles)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]

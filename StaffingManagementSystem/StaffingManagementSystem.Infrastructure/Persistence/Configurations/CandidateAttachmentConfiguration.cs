@@ -19,6 +19,12 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
             builder.Property(a => a.CandidateId)
                 .IsRequired();
 
+            builder.Property(a => a.Type)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue(Core.Enums.CandidateAttachmentType.Other);
+
             builder.Property(a => a.FileName)
                 .IsRequired()
                 .HasMaxLength(260);

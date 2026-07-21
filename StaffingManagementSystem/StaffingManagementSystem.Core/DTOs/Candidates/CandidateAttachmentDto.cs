@@ -5,6 +5,9 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
     {
         public Guid Id { get; set; }
 
+        /// <summary>"Resume" or "Other".</summary>
+        public string Type { get; set; } = "Other";
+
         public string FileName { get; set; } = string.Empty;
 
         public string ContentType { get; set; } = string.Empty;

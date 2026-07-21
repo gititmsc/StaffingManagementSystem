@@ -62,14 +62,17 @@ namespace StaffingManagementSystem.Services
             {
                 Id = candidateId,
                 FullName = request.FullName.Trim(),
+                Title = Norm(request.Title),
                 Email = normalizedEmail,
                 Phone = Norm(request.Phone),
                 Address = Norm(request.Address),
                 CurrentLocation = Norm(request.CurrentLocation),
                 DateOfBirth = request.DateOfBirth,
                 Gender = Norm(request.Gender),
+                LinkedInUrl = Norm(request.LinkedInUrl),
                 Status = status,
                 Source = source,
+                OtherSourceText = source == CandidateSource.Other ? Norm(request.OtherSourceText) : null,
                 OwnerRecruiterId = ownerRecruiterId,
                 TotalExperienceYears = CalculateTotalExperienceYears(experience),
                 CreatedAtUtc = DateTime.UtcNow,
@@ -81,8 +84,22 @@ namespace StaffingManagementSystem.Services
 
             await _candidateRepository.CreateAsync(candidate);
 
+            var initialNote = Norm(request.InitialNote);
+            if (initialNote is not null)
+            {
+                await _candidateRepository.AddNoteAsync(new CandidateNote
+                {
+                    Id = Guid.NewGuid(),
+                    CandidateId = candidateId,
+                    Note = initialNote,
+                    CreatedByUserId = ownerRecruiterId,
+                    CreatedAtUtc = DateTime.UtcNow,
+                });
+            }
+
+            var refreshed = await _candidateRepository.GetByIdAsync(candidateId);
             var userNames = await GetUserNameLookupAsync();
-            var dto = MapToDetailDto(candidate, userNames);
+            var dto = MapToDetailDto(refreshed ?? candidate, userNames);
 
             var message = isDuplicateEmail
                 ? "Candidate created. Note: another candidate already uses this email address."
@@ -117,14 +134,17 @@ namespace StaffingManagementSystem.Services
             {
                 Id = id,
                 FullName = request.FullName.Trim(),
+                Title = Norm(request.Title),
                 Email = normalizedEmail,
                 Phone = Norm(request.Phone),
                 Address = Norm(request.Address),
                 CurrentLocation = Norm(request.CurrentLocation),
                 DateOfBirth = request.DateOfBirth,
                 Gender = Norm(request.Gender),
+                LinkedInUrl = Norm(request.LinkedInUrl),
                 Status = status,
                 Source = source,
+                OtherSourceText = source == CandidateSource.Other ? Norm(request.OtherSourceText) : null,
                 OwnerRecruiterId = request.OwnerRecruiterId ?? existing.OwnerRecruiterId,
                 TotalExperienceYears = CalculateTotalExperienceYears(experience),
             };
@@ -301,6 +321,7 @@ namespace StaffingManagementSystem.Services
             {
                 Id = candidate.Id,
                 FullName = candidate.FullName,
+                Title = candidate.Title,
                 Email = candidate.Email,
                 Phone = candidate.Phone,
                 CurrentLocation = candidate.CurrentLocation,
@@ -325,14 +346,17 @@ namespace StaffingManagementSystem.Services
             {
                 Id = candidate.Id,
                 FullName = candidate.FullName,
+                Title = candidate.Title,
                 Email = candidate.Email,
                 Phone = candidate.Phone,
                 Address = candidate.Address,
                 CurrentLocation = candidate.CurrentLocation,
                 DateOfBirth = candidate.DateOfBirth,
                 Gender = candidate.Gender,
+                LinkedInUrl = candidate.LinkedInUrl,
                 Status = candidate.Status.ToString(),
                 Source = candidate.Source?.ToString(),
+                OtherSourceText = candidate.OtherSourceText,
                 OwnerRecruiterId = candidate.OwnerRecruiterId,
                 OwnerRecruiterName = ownerName,
                 TotalExperienceYears = candidate.TotalExperienceYears,

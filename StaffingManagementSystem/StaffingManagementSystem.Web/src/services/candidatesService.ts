@@ -9,6 +9,7 @@ import type { ApiResponse } from "@/services/authService";
 export interface CandidateListItem {
   id: string;
   fullName: string;
+  title?: string | null;
   email: string;
   phone?: string | null;
   currentLocation?: string | null;
@@ -69,6 +70,7 @@ export interface CandidateNote {
 
 export interface CandidateAttachment {
   id: string;
+  type: "Resume" | "Other";
   fileName: string;
   contentType: string;
   fileSizeBytes: number;
@@ -79,14 +81,17 @@ export interface CandidateAttachment {
 export interface CandidateDetail {
   id: string;
   fullName: string;
+  title?: string | null;
   email: string;
   phone?: string | null;
   address?: string | null;
   currentLocation?: string | null;
   dateOfBirth?: string | null;
   gender?: string | null;
+  linkedInUrl?: string | null;
   status: string;
   source?: string | null;
+  otherSourceText?: string | null;
   ownerRecruiterId: string;
   ownerRecruiterName?: string | null;
   totalExperienceYears: number;
@@ -136,15 +141,20 @@ export interface ProjectInput {
 
 export interface SaveCandidateRequest {
   fullName: string;
+  title?: string;
   email: string;
   phone?: string;
   address?: string;
   currentLocation?: string;
   dateOfBirth?: string;
   gender?: string;
+  linkedInUrl?: string;
   status: string;
   source?: string;
+  otherSourceText?: string;
   ownerRecruiterId?: string;
+  /** Only meaningful on create — the backend records it as the candidate's first note. */
+  initialNote?: string;
   skills: SkillInput[];
   experience: ExperienceInput[];
   education: EducationInput[];
@@ -240,6 +250,22 @@ async function uploadAttachment(candidateId: string, file: File): Promise<ApiRes
   }
 }
 
+/** Uploads (or replaces) a candidate's resume — kept separate from general attachments. */
+async function uploadResume(candidateId: string, file: File): Promise<ApiResponse<CandidateAttachment>> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post<ApiResponse<CandidateAttachment>>(
+      `/api/candidates/${candidateId}/resume`,
+      formData
+    );
+    return response.data;
+  } catch (error) {
+    return toFailure<CandidateAttachment>(error);
+  }
+}
+
 async function removeAttachment(candidateId: string, attachmentId: string): Promise<ApiResponse<null>> {
   try {
     const response = await apiClient.delete<ApiResponse<null>>(`/api/candidates/${candidateId}/attachments/${attachmentId}`);
@@ -278,6 +304,7 @@ export const candidatesService = {
   addNote,
   getAttachments,
   uploadAttachment,
+  uploadResume,
   removeAttachment,
   downloadAttachment,
 };

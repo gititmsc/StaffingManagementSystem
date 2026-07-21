@@ -11,7 +11,20 @@ namespace StaffingManagementSystem.Services.Interfaces
     {
         Task<ApiResponse<List<CandidateAttachmentDto>>> GetByCandidateIdAsync(Guid candidateId);
 
+        /// <summary>Adds a general (non-resume) document. Multiple are allowed per candidate.</summary>
         Task<ApiResponse<CandidateAttachmentDto>> UploadAsync(
+            Guid candidateId,
+            string fileName,
+            string contentType,
+            long fileSizeBytes,
+            Stream content,
+            Guid uploadedByUserId);
+
+        /// <summary>
+        /// Uploads a candidate's resume, replacing (deleting) any previous resume file/row so a
+        /// candidate always has at most one active resume, kept separate from other attachments.
+        /// </summary>
+        Task<ApiResponse<CandidateAttachmentDto>> UploadResumeAsync(
             Guid candidateId,
             string fileName,
             string contentType,
