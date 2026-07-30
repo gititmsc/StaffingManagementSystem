@@ -16,6 +16,8 @@ namespace StaffingManagementSystem.Infrastructure.Persistence
 
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
         public DbSet<Candidate> Candidates => Set<Candidate>();
 
         public DbSet<SkillMaster> SkillMaster => Set<SkillMaster>();

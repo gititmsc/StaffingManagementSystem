@@ -9,11 +9,12 @@ namespace StaffingManagementSystem.Services.Interfaces
     public interface ICandidateService
     {
         /// <summary>
-        /// Field-level visibility is driven by <paramref name="actorRole"/>: Viewer gets Name,
-        /// Email, LinkedIn URL and Phone replaced with "XXXX"; CostToCompany is null unless
-        /// the role is Admin; CurrentSalary is null unless the role is Admin or Recruiter.
+        /// Server-side paged, searched and status-filtered candidate list. Field-level
+        /// visibility is driven by <paramref name="actorRole"/>: Viewer gets Name, Email,
+        /// LinkedIn URL and Phone replaced with "XXXX"; CostToCompany is null unless the role
+        /// is Admin; CurrentSalary is null unless the role is Admin or Recruiter.
         /// </summary>
-        Task<ApiResponse<List<CandidateListItemDto>>> GetAllCandidatesAsync(string actorRole);
+        Task<ApiResponse<CandidateListResultDto>> GetAllCandidatesAsync(CandidateListRequestDto request, string actorRole);
 
         /// <summary>
         /// Field-level visibility is driven by <paramref name="actorRole"/>: Viewer gets Name,

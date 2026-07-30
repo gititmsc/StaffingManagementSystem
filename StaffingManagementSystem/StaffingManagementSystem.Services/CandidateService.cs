@@ -19,15 +19,55 @@ namespace StaffingManagementSystem.Services
             _userRepository = userRepository;
         }
 
-        public async Task<ApiResponse<List<CandidateListItemDto>>> GetAllCandidatesAsync(string actorRole)
+        public async Task<ApiResponse<CandidateListResultDto>> GetAllCandidatesAsync(CandidateListRequestDto request, string actorRole)
         {
             var candidates = await _candidateRepository.GetAllAsync();
             var userNames = await GetUserNameLookupAsync();
 
-            var dtos = candidates.Select(c => MapToListItemDto(c, userNames)).ToList();
-            dtos.ForEach(dto => ApplyFieldVisibility(dto, actorRole));
+            // Repository already orders by CreatedAtUtc descending; Select/Where preserve that order.
+            IEnumerable<CandidateListItemDto> filtered = candidates.Select(c => MapToListItemDto(c, userNames));
 
-            return ApiResponse<List<CandidateListItemDto>>.SuccessResponse(dtos);
+            var term = Norm(request.Search)?.ToLowerInvariant();
+            if (term is not null)
+            {
+                filtered = filtered.Where(d =>
+                    d.FullName.ToLowerInvariant().Contains(term) ||
+                    d.Email.ToLowerInvariant().Contains(term) ||
+                    (d.CurrentCompany ?? string.Empty).ToLowerInvariant().Contains(term) ||
+                    d.Skills.Any(s => s.ToLowerInvariant().Contains(term)));
+            }
+
+            var status = Norm(request.Status);
+            if (status is not null)
+            {
+                filtered = filtered.Where(d => string.Equals(d.Status, status, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var materialized = filtered.ToList();
+            var totalCount = materialized.Count;
+
+            var page = request.Page < 1 ? 1 : request.Page;
+            var pageSize = request.PageSize < 1 ? 25 : Math.Min(request.PageSize, 200);
+
+            var pageItems = materialized
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            pageItems.ForEach(dto => ApplyFieldVisibility(dto, actorRole));
+
+            var totalPages = pageSize == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            var result = new CandidateListResultDto
+            {
+                Items = pageItems,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+            };
+
+            return ApiResponse<CandidateListResultDto>.SuccessResponse(result);
         }
 
         public async Task<ApiResponse<CandidateDetailDto>> GetCandidateByIdAsync(Guid id, string actorRole)

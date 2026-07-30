@@ -19,7 +19,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: user !== null,
       setSession: (nextUser: AuthUser) => setUser(nextUser),
       logout: () => {
-        authService.logout();
+        // Fire-and-forget: the best-effort server-side revoke shouldn't block clearing the
+        // local session and navigating the user away.
+        void authService.logout();
         setUser(null);
       },
     }),

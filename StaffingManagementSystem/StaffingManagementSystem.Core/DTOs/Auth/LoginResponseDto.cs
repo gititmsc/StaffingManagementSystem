@@ -9,6 +9,12 @@ namespace StaffingManagementSystem.Core.DTOs.Auth
 
         public DateTime ExpiresAtUtc { get; set; }
 
+        /// <summary>
+        /// Long-lived opaque token the client stores and later exchanges via
+        /// POST /api/auth/refresh for a new access token, without the user signing in again.
+        /// </summary>
+        public string RefreshToken { get; set; } = string.Empty;
+
         public UserDto User { get; set; } = new();
     }
 }

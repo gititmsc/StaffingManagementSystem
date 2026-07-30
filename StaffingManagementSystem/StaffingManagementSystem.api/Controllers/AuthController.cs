@@ -44,6 +44,39 @@ namespace StaffingManagementSystem.Api.Controllers
         }
 
         /// <summary>
+        /// Silently exchanges a still-valid refresh token for a new access token, so an active
+        /// user's session is extended without asking them to sign in again.
+        /// </summary>
+        [HttpPost("refresh")]
+        [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponseDto>), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(ApiResponse<RefreshTokenResponseDto>.FailureResponse("Validation failed.", errors));
+            }
+
+            var result = await _authService.RefreshTokenAsync(request);
+
+            return result.Success ? Ok(result) : Unauthorized(result);
+        }
+
+        /// <summary>Revokes the given refresh token, if any, so it can no longer be used to silently refresh.</summary>
+        [HttpPost("logout")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> Logout([FromBody] LogoutRequestDto request)
+        {
+            var result = await _authService.LogoutAsync(request);
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Starts the "forgot password" flow: if the email matches an active account, a
         /// single-use reset link is emailed to it. The response is always the same generic
         /// success message so this endpoint cannot be used to enumerate registered accounts.

@@ -19,27 +19,33 @@ namespace StaffingManagementSystem.Services
 
         private readonly IUserRepository _userRepository;
         private readonly IPasswordResetTokenRepository _passwordResetTokenRepository;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly IPasswordHasher _passwordHasher;
         private readonly IJwtTokenGenerator _jwtTokenGenerator;
         private readonly IEmailService _emailService;
         private readonly AppUrlSettings _appUrlSettings;
+        private readonly JwtSettings _jwtSettings;
         private readonly ILogger<AuthService> _logger;
 
         public AuthService(
             IUserRepository userRepository,
             IPasswordResetTokenRepository passwordResetTokenRepository,
+            IRefreshTokenRepository refreshTokenRepository,
             IPasswordHasher passwordHasher,
             IJwtTokenGenerator jwtTokenGenerator,
             IEmailService emailService,
             IOptions<AppUrlSettings> appUrlOptions,
+            IOptions<JwtSettings> jwtOptions,
             ILogger<AuthService> logger)
         {
             _userRepository = userRepository;
             _passwordResetTokenRepository = passwordResetTokenRepository;
+            _refreshTokenRepository = refreshTokenRepository;
             _passwordHasher = passwordHasher;
             _jwtTokenGenerator = jwtTokenGenerator;
             _emailService = emailService;
             _appUrlSettings = appUrlOptions.Value;
+            _jwtSettings = jwtOptions.Value;
             _logger = logger;
         }
 
@@ -55,12 +61,14 @@ namespace StaffingManagementSystem.Services
             }
 
             var (token, expiresAtUtc) = _jwtTokenGenerator.GenerateToken(user);
+            var (rawRefreshToken, _) = await IssueRefreshTokenAsync(user.Id);
             await _userRepository.UpdateLastLoginAsync(user.Id, DateTime.UtcNow);
 
             var response = new LoginResponseDto
             {
                 Token = token,
                 ExpiresAtUtc = expiresAtUtc,
+                RefreshToken = rawRefreshToken,
                 User = new UserDto
                 {
                     Id = user.Id,
@@ -71,6 +79,60 @@ namespace StaffingManagementSystem.Services
             };
 
             return ApiResponse<LoginResponseDto>.SuccessResponse(response, "Login successful.");
+        }
+
+        public async Task<ApiResponse<RefreshTokenResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request)
+        {
+            var tokenHash = ResetTokenHelper.HashToken(request.RefreshToken);
+            var existing = await _refreshTokenRepository.GetValidByTokenHashAsync(tokenHash, DateTime.UtcNow);
+
+            if (existing is null)
+            {
+                return ApiResponse<RefreshTokenResponseDto>.FailureResponse(
+                    "Your session has expired. Please sign in again.",
+                    ["Invalid or expired refresh token."]);
+            }
+
+            var user = await _userRepository.GetByIdAsync(existing.UserId);
+            if (user is null || !user.IsActive)
+            {
+                return ApiResponse<RefreshTokenResponseDto>.FailureResponse(
+                    "Your session has expired. Please sign in again.",
+                    ["Account is no longer active."]);
+            }
+
+            var (token, expiresAtUtc) = _jwtTokenGenerator.GenerateToken(user);
+            var (rawRefreshToken, newTokenId) = await IssueRefreshTokenAsync(user.Id);
+
+            // Rotation: once used, the old refresh token can never be redeemed again — even if
+            // it had leaked, it's now worthless.
+            await _refreshTokenRepository.RevokeAsync(existing.Id, DateTime.UtcNow, newTokenId);
+
+            var response = new RefreshTokenResponseDto
+            {
+                Token = token,
+                ExpiresAtUtc = expiresAtUtc,
+                RefreshToken = rawRefreshToken,
+            };
+
+            return ApiResponse<RefreshTokenResponseDto>.SuccessResponse(response);
+        }
+
+        public async Task<ApiResponse<object>> LogoutAsync(LogoutRequestDto request)
+        {
+            if (!string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                var tokenHash = ResetTokenHelper.HashToken(request.RefreshToken);
+                var existing = await _refreshTokenRepository.GetValidByTokenHashAsync(tokenHash, DateTime.UtcNow);
+
+                if (existing is not null)
+                {
+                    await _refreshTokenRepository.RevokeAsync(existing.Id, DateTime.UtcNow);
+                }
+            }
+
+            // Always succeeds — whether or not the token was still valid isn't the caller's concern.
+            return ApiResponse<object>.SuccessResponse(new { }, "Signed out.");
         }
 
         public async Task<ApiResponse<object>> ForgotPasswordAsync(ForgotPasswordRequestDto request)
@@ -137,9 +199,30 @@ namespace StaffingManagementSystem.Services
             await _passwordResetTokenRepository.MarkUsedAsync(resetToken.Id, DateTime.UtcNow);
             await _passwordResetTokenRepository.InvalidateActiveTokensForUserAsync(resetToken.UserId);
 
+            // The password just changed — every other signed-in session (and its ability to
+            // silently refresh) must be cut off, not just this one.
+            await _refreshTokenRepository.RevokeAllForUserAsync(resetToken.UserId, DateTime.UtcNow);
+
             return ApiResponse<object>.SuccessResponse(
                 new { },
                 "Your password has been reset. You can now sign in with your new password.");
+        }
+
+        private async Task<(string RawToken, Guid TokenId)> IssueRefreshTokenAsync(Guid userId)
+        {
+            var rawToken = ResetTokenHelper.GenerateSecureToken();
+            var tokenId = Guid.NewGuid();
+
+            await _refreshTokenRepository.CreateAsync(new RefreshToken
+            {
+                Id = tokenId,
+                UserId = userId,
+                TokenHash = ResetTokenHelper.HashToken(rawToken),
+                ExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays),
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+
+            return (rawToken, tokenId);
         }
     }
 }

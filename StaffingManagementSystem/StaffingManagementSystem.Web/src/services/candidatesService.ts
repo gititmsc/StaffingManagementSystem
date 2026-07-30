@@ -22,6 +22,21 @@ export interface CandidateListItem {
   createdAtUtc: string;
 }
 
+export interface CandidateListParams {
+  search?: string;
+  status?: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface CandidateListResult {
+  items: CandidateListItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export interface CandidateSkill {
   id: string;
   skillName: string;
@@ -182,12 +197,19 @@ function toFailure<T>(error: unknown): ApiResponse<T> {
   };
 }
 
-async function getAll(): Promise<ApiResponse<CandidateListItem[]>> {
+async function getAll(params: CandidateListParams): Promise<ApiResponse<CandidateListResult>> {
   try {
-    const response = await apiClient.get<ApiResponse<CandidateListItem[]>>("/api/candidates");
+    const response = await apiClient.get<ApiResponse<CandidateListResult>>("/api/candidates", {
+      params: {
+        search: params.search || undefined,
+        status: params.status || undefined,
+        page: params.page,
+        pageSize: params.pageSize,
+      },
+    });
     return response.data;
   } catch (error) {
-    return toFailure<CandidateListItem[]>(error);
+    return toFailure<CandidateListResult>(error);
   }
 }
 

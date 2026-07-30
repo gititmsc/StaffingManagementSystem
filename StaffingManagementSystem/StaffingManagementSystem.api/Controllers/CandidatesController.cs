@@ -31,12 +31,12 @@ namespace StaffingManagementSystem.Api.Controllers
             _attachmentService = attachmentService;
         }
 
-        /// <summary>Lists every non-deleted candidate.</summary>
+        /// <summary>Lists non-deleted candidates — server-side paged, searched and status-filtered.</summary>
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<List<CandidateListItemDto>>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll()
+        [ProducesResponseType(typeof(ApiResponse<CandidateListResultDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAll([FromQuery] CandidateListRequestDto request)
         {
-            var result = await _candidateService.GetAllCandidatesAsync(GetActingRole());
+            var result = await _candidateService.GetAllCandidatesAsync(request, GetActingRole());
             return Ok(result);
         }
 

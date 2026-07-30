@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 import { CANDIDATE_EDIT_ROLES, CANDIDATE_STATUS_LABELS, CANDIDATE_STATUS_OPTIONS } from "@/constants/candidates";
 import { candidatesService, type CandidateListItem } from "@/services/candidatesService";
 import "./CandidateList.css";
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const DEFAULT_PAGE_SIZE = 25;
 
 function formatDate(value?: string | null): string {
   if (!value) return "—";
@@ -37,18 +40,39 @@ export default function CandidateList() {
   const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [pendingDelete, setPendingDelete] = useState<CandidateListItem | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pageMessage, setPageMessage] = useState<string | null>(null);
 
-  const loadCandidates = async () => {
+  // Debounce free-text search so we don't hit the server on every keystroke.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchTerm(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const loadCandidates = async (targetPage: number = page) => {
     setIsLoading(true);
     setLoadError(null);
 
-    const response = await candidatesService.getAll();
+    const response = await candidatesService.getAll({
+      search: searchTerm || undefined,
+      status: statusFilter || undefined,
+      page: targetPage,
+      pageSize,
+    });
 
     if (!response.success || !response.data) {
       setLoadError(response.message || "Unable to load candidates.");
@@ -56,13 +80,17 @@ export default function CandidateList() {
       return;
     }
 
-    setCandidates(response.data);
+    setCandidates(response.data.items);
+    setTotalCount(response.data.totalCount);
+    setTotalPages(response.data.totalPages);
+    setPage(response.data.page);
     setIsLoading(false);
   };
 
   useEffect(() => {
-    loadCandidates();
-  }, []);
+    loadCandidates(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, statusFilter, pageSize, page]);
 
   useEffect(() => {
     if (!pageMessage) return;
@@ -70,22 +98,20 @@ export default function CandidateList() {
     return () => window.clearTimeout(timer);
   }, [pageMessage]);
 
-  const filteredCandidates = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
 
-    return candidates.filter((c) => {
-      const matchesTerm =
-        !term ||
-        c.fullName.toLowerCase().includes(term) ||
-        c.email.toLowerCase().includes(term) ||
-        (c.currentCompany ?? "").toLowerCase().includes(term) ||
-        c.skills.some((skill) => skill.toLowerCase().includes(term));
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value);
+    setPage(1);
+  };
 
-      const matchesStatus = !statusFilter || c.status === statusFilter;
-
-      return matchesTerm && matchesStatus;
-    });
-  }, [candidates, searchTerm, statusFilter]);
+  const goToPage = (target: number) => {
+    if (target < 1 || target > Math.max(totalPages, 1)) return;
+    setPage(target);
+  };
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
@@ -101,8 +127,19 @@ export default function CandidateList() {
 
     setPageMessage(response.message || "Candidate deleted.");
     setPendingDelete(null);
-    await loadCandidates();
+
+    // If we just deleted the last item on a page beyond the first, step back a page.
+    // Changing `page` re-triggers the load effect; if it's unchanged, reload explicitly here.
+    const nextPage = candidates.length === 1 && page > 1 ? page - 1 : page;
+    if (nextPage === page) {
+      await loadCandidates(nextPage);
+    } else {
+      setPage(nextPage);
+    }
   };
+
+  const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = totalCount === 0 ? 0 : Math.min(page * pageSize, totalCount);
 
   return (
     <div className="container py-4">
@@ -141,8 +178,8 @@ export default function CandidateList() {
           <input
             type="text"
             placeholder="Search by name, email, company or skill..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
             aria-label="Search candidates"
           />
         </div>
@@ -150,7 +187,7 @@ export default function CandidateList() {
         <select
           className="form-select candidates-status-filter"
           value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value)}
+          onChange={(event) => handleStatusFilterChange(event.target.value)}
           aria-label="Filter by status"
         >
           <option value="">All statuses</option>
@@ -160,6 +197,24 @@ export default function CandidateList() {
             </option>
           ))}
         </select>
+
+        <div className="candidates-page-size">
+          <label htmlFor="candidatesPageSize">Show</label>
+          <select
+            id="candidatesPageSize"
+            className="form-select"
+            value={pageSize}
+            onChange={(event) => handlePageSizeChange(Number(event.target.value))}
+            aria-label="Records per page"
+          >
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+          <span>per page</span>
+        </div>
       </div>
 
       <div className="candidates-table-card">
@@ -176,94 +231,128 @@ export default function CandidateList() {
             <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
             <span>{loadError}</span>
           </div>
-        ) : filteredCandidates.length === 0 ? (
+        ) : candidates.length === 0 ? (
           <div className="candidates-empty">
             <i className="bi bi-person-lines-fill" aria-hidden="true" />
             <span>No candidates found.</span>
           </div>
         ) : (
-          <table className="table candidates-table align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Location</th>
-                <th>Experience</th>
-                <th>Skills</th>
-                <th>Status</th>
-                <th>Owner</th>
-                <th>Added</th>
-                <th className="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCandidates.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <button type="button" className="candidates-name-link" onClick={() => navigate(`/candidates/${row.id}`)}>
-                      {row.fullName}
-                    </button>
-                    {row.title && <div className="candidates-name-subtitle">{row.title}</div>}
-                  </td>
-                  <td>{row.email}</td>
-                  <td>{row.currentLocation || "—"}</td>
-                  <td>{row.totalExperienceYears} yrs</td>
-                  <td>
-                    <div className="candidates-skill-chips">
-                      {row.skills.slice(0, 3).map((skill) => (
-                        <span key={skill} className="candidates-skill-chip">
-                          {skill}
-                        </span>
-                      ))}
-                      {row.skills.length > 3 && <span className="candidates-skill-chip">+{row.skills.length - 3}</span>}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`candidates-badge ${statusBadgeClass(row.status)}`}>
-                      {CANDIDATE_STATUS_LABELS[row.status] ?? row.status}
-                    </span>
-                  </td>
-                  <td>{row.ownerRecruiterName || "—"}</td>
-                  <td>{formatDate(row.createdAtUtc)}</td>
-                  <td>
-                    <div className="candidates-row-actions">
-                      <button
-                        type="button"
-                        className="candidates-icon-btn"
-                        onClick={() => navigate(`/candidates/${row.id}`)}
-                        aria-label={`View ${row.fullName}`}
-                        title="View"
-                      >
-                        <i className="bi bi-eye-fill" aria-hidden="true" />
-                      </button>
-                      {canEdit && (
-                        <>
-                          <button
-                            type="button"
-                            className="candidates-icon-btn"
-                            onClick={() => navigate(`/candidates/${row.id}/edit`)}
-                            aria-label={`Edit ${row.fullName}`}
-                            title="Edit"
-                          >
-                            <i className="bi bi-pencil-fill" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            className="candidates-icon-btn candidates-icon-btn--danger"
-                            onClick={() => setPendingDelete(row)}
-                            aria-label={`Delete ${row.fullName}`}
-                            title="Delete"
-                          >
-                            <i className="bi bi-trash-fill" aria-hidden="true" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+          <>
+            <table className="table candidates-table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Location</th>
+                  <th>Experience</th>
+                  <th>Skills</th>
+                  <th>Status</th>
+                  <th>Owner</th>
+                  <th>Added</th>
+                  <th className="text-end">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {candidates.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <button type="button" className="candidates-name-link" onClick={() => navigate(`/candidates/${row.id}`)}>
+                        {row.fullName}
+                      </button>
+                      {row.title && <div className="candidates-name-subtitle">{row.title}</div>}
+                    </td>
+                    <td>{row.email}</td>
+                    <td>{row.currentLocation || "—"}</td>
+                    <td>{row.totalExperienceYears} yrs</td>
+                    <td>
+                      <div className="candidates-skill-chips">
+                        {row.skills.slice(0, 3).map((skill) => (
+                          <span key={skill} className="candidates-skill-chip">
+                            {skill}
+                          </span>
+                        ))}
+                        {row.skills.length > 3 && <span className="candidates-skill-chip">+{row.skills.length - 3}</span>}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`candidates-badge ${statusBadgeClass(row.status)}`}>
+                        {CANDIDATE_STATUS_LABELS[row.status] ?? row.status}
+                      </span>
+                    </td>
+                    <td>{row.ownerRecruiterName || "—"}</td>
+                    <td>{formatDate(row.createdAtUtc)}</td>
+                    <td>
+                      <div className="candidates-row-actions">
+                        <button
+                          type="button"
+                          className="candidates-icon-btn"
+                          onClick={() => navigate(`/candidates/${row.id}`)}
+                          aria-label={`View ${row.fullName}`}
+                          title="View"
+                        >
+                          <i className="bi bi-eye-fill" aria-hidden="true" />
+                        </button>
+                        {canEdit && (
+                          <>
+                            <button
+                              type="button"
+                              className="candidates-icon-btn"
+                              onClick={() => navigate(`/candidates/${row.id}/edit`)}
+                              aria-label={`Edit ${row.fullName}`}
+                              title="Edit"
+                            >
+                              <i className="bi bi-pencil-fill" aria-hidden="true" />
+                            </button>
+                            <button
+                              type="button"
+                              className="candidates-icon-btn candidates-icon-btn--danger"
+                              onClick={() => setPendingDelete(row)}
+                              aria-label={`Delete ${row.fullName}`}
+                              title="Delete"
+                            >
+                              <i className="bi bi-trash-fill" aria-hidden="true" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="candidates-pagination">
+              <span className="candidates-pagination__summary">
+                Showing {rangeStart}–{rangeEnd} of {totalCount}
+              </span>
+
+              {totalPages > 1 && (
+                <div className="candidates-pagination__controls">
+                  <button
+                    type="button"
+                    className="candidates-page-btn"
+                    disabled={page <= 1}
+                    onClick={() => goToPage(page - 1)}
+                  >
+                    <i className="bi bi-chevron-left" aria-hidden="true" />
+                    Previous
+                  </button>
+                  <span className="candidates-page-indicator">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="candidates-page-btn"
+                    disabled={page >= totalPages}
+                    onClick={() => goToPage(page + 1)}
+                  >
+                    Next
+                    <i className="bi bi-chevron-right" aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
