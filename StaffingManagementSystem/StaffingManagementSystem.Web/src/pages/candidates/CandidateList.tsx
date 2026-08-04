@@ -29,13 +29,24 @@ function statusBadgeClass(status: string): string {
       return "candidates-badge--blacklisted";
     case "PendingApproval":
       return "candidates-badge--pending";
-    case "Approved":
-      return "candidates-badge--approved";
     case "Rejected":
       return "candidates-badge--rejected";
     default:
+      // Includes "Approved" — the Candidate Master list shows a just-approved candidate as
+      // "New" (see statusDisplayLabel), so it gets the same badge styling as New too.
       return "candidates-badge--new";
   }
+}
+
+/**
+ * Candidate Master shows a freshly-approved self-registered candidate as "New" rather than
+ * "Approved" — the underlying status stays Approved (the Candidate Approvals screen's
+ * "Approved" tab and audit fields still rely on that real value), this is a display-only
+ * relabel scoped to this screen.
+ */
+function statusDisplayLabel(status: string): string {
+  if (status === "Approved") return "New";
+  return CANDIDATE_STATUS_LABELS[status] ?? status;
 }
 
 export default function CandidateList() {
@@ -282,7 +293,7 @@ export default function CandidateList() {
                     </td>
                     <td>
                       <span className={`candidates-badge ${statusBadgeClass(row.status)}`}>
-                        {CANDIDATE_STATUS_LABELS[row.status] ?? row.status}
+                        {statusDisplayLabel(row.status)}
                       </span>
                     </td>
                     <td>{row.ownerRecruiterName || "—"}</td>
