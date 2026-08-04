@@ -48,6 +48,9 @@ const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 export default function CandidateRegistration() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const [experienceError, setExperienceError] = useState<string | null>(null);
+  const [educationError, setEducationError] = useState<string | null>(null);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -102,9 +105,64 @@ export default function CandidateRegistration() {
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
+    setExperienceError(null);
+    setEducationError(null);
+    setProjectsError(null);
 
     if (!resumeFile) {
       setResumeError("Please attach your resume.");
+      return;
+    }
+
+    const experience = values.experience
+      .filter((e) => e.companyName.trim())
+      .map((e) => ({
+        companyName: e.companyName.trim(),
+        jobTitle: e.jobTitle.trim(),
+        employmentType: e.employmentType || undefined,
+        startDate: e.startDate,
+        endDate: e.isCurrent ? undefined : e.endDate || undefined,
+        isCurrent: e.isCurrent,
+        location: e.location.trim() || undefined,
+        description: e.description.trim() || undefined,
+      }));
+
+    const education = values.education
+      .filter((e) => e.degree.trim())
+      .map((e) => ({
+        degree: e.degree.trim(),
+        institution: e.institution.trim(),
+        fieldOfStudy: e.fieldOfStudy.trim() || undefined,
+        startYear: e.startYear ? Number(e.startYear) : undefined,
+        endYear: e.endYear ? Number(e.endYear) : undefined,
+        isExpected: e.isExpected,
+        grade: e.grade.trim() || undefined,
+      }));
+
+    const projects = values.projects
+      .filter((p) => p.projectName.trim())
+      .map((p) => ({
+        projectName: p.projectName.trim(),
+        role: p.role.trim() || undefined,
+        durationText: p.durationText.trim() || undefined,
+        technologiesUsed: p.technologiesUsed.trim() || undefined,
+        description: p.description.trim() || undefined,
+      }));
+
+    let hasSectionError = false;
+    if (experience.length === 0) {
+      setExperienceError("Please add at least one work experience entry.");
+      hasSectionError = true;
+    }
+    if (education.length === 0) {
+      setEducationError("Please add at least one education entry.");
+      hasSectionError = true;
+    }
+    if (projects.length === 0) {
+      setProjectsError("Please add at least one project entry.");
+      hasSectionError = true;
+    }
+    if (hasSectionError) {
       return;
     }
 
@@ -125,38 +183,9 @@ export default function CandidateRegistration() {
       currentLocation: values.currentLocation.trim() || undefined,
       linkedInUrl: values.linkedInUrl.trim() || undefined,
       skills,
-      experience: values.experience
-        .filter((e) => e.companyName.trim())
-        .map((e) => ({
-          companyName: e.companyName.trim(),
-          jobTitle: e.jobTitle.trim(),
-          employmentType: e.employmentType || undefined,
-          startDate: e.startDate,
-          endDate: e.isCurrent ? undefined : e.endDate || undefined,
-          isCurrent: e.isCurrent,
-          location: e.location.trim() || undefined,
-          description: e.description.trim() || undefined,
-        })),
-      education: values.education
-        .filter((e) => e.degree.trim())
-        .map((e) => ({
-          degree: e.degree.trim(),
-          institution: e.institution.trim(),
-          fieldOfStudy: e.fieldOfStudy.trim() || undefined,
-          startYear: e.startYear ? Number(e.startYear) : undefined,
-          endYear: e.endYear ? Number(e.endYear) : undefined,
-          isExpected: e.isExpected,
-          grade: e.grade.trim() || undefined,
-        })),
-      projects: values.projects
-        .filter((p) => p.projectName.trim())
-        .map((p) => ({
-          projectName: p.projectName.trim(),
-          role: p.role.trim() || undefined,
-          durationText: p.durationText.trim() || undefined,
-          technologiesUsed: p.technologiesUsed.trim() || undefined,
-          description: p.description.trim() || undefined,
-        })),
+      experience,
+      education,
+      projects,
       recaptchaToken,
       resume: resumeFile,
     });
@@ -269,11 +298,12 @@ export default function CandidateRegistration() {
 
                 <section className="candidate-form-section">
                   <div className="candidate-form-section__header">
-                    <h2 className="candidate-form-section__title">Work Experience</h2>
+                    <h2 className="candidate-form-section__title">Work Experience *</h2>
                     <button
                       type="button"
                       className="candidate-form-add-btn"
-                      onClick={() =>
+                      onClick={() => {
+                        setExperienceError(null);
                         experienceArray.append({
                           companyName: "",
                           jobTitle: "",
@@ -283,8 +313,8 @@ export default function CandidateRegistration() {
                           isCurrent: false,
                           location: "",
                           description: "",
-                        })
-                      }
+                        });
+                      }}
                     >
                       <i className="bi bi-plus-lg" aria-hidden="true" />
                       Add Experience
@@ -292,8 +322,9 @@ export default function CandidateRegistration() {
                   </div>
 
                   {experienceArray.fields.length === 0 && (
-                    <p className="candidate-form-empty">No work experience added yet.</p>
+                    <p className="candidate-form-empty">Please add at least one work experience entry.</p>
                   )}
+                  {experienceError && <div className="invalid-feedback d-block">{experienceError}</div>}
 
                   {experienceArray.fields.map((field, index) => (
                     <div className="candidate-form-card" key={field.id}>
@@ -380,11 +411,12 @@ export default function CandidateRegistration() {
 
                 <section className="candidate-form-section">
                   <div className="candidate-form-section__header">
-                    <h2 className="candidate-form-section__title">Education</h2>
+                    <h2 className="candidate-form-section__title">Education *</h2>
                     <button
                       type="button"
                       className="candidate-form-add-btn"
-                      onClick={() =>
+                      onClick={() => {
+                        setEducationError(null);
                         educationArray.append({
                           degree: "",
                           institution: "",
@@ -393,15 +425,18 @@ export default function CandidateRegistration() {
                           endYear: "",
                           isExpected: false,
                           grade: "",
-                        })
-                      }
+                        });
+                      }}
                     >
                       <i className="bi bi-plus-lg" aria-hidden="true" />
                       Add Education
                     </button>
                   </div>
 
-                  {educationArray.fields.length === 0 && <p className="candidate-form-empty">No education added yet.</p>}
+                  {educationArray.fields.length === 0 && (
+                    <p className="candidate-form-empty">Please add at least one education entry.</p>
+                  )}
+                  {educationError && <div className="invalid-feedback d-block">{educationError}</div>}
 
                   {educationArray.fields.map((field, index) => (
                     <div className="candidate-form-card" key={field.id}>
@@ -478,26 +513,30 @@ export default function CandidateRegistration() {
 
                 <section className="candidate-form-section">
                   <div className="candidate-form-section__header">
-                    <h2 className="candidate-form-section__title">Projects</h2>
+                    <h2 className="candidate-form-section__title">Projects *</h2>
                     <button
                       type="button"
                       className="candidate-form-add-btn"
-                      onClick={() =>
+                      onClick={() => {
+                        setProjectsError(null);
                         projectsArray.append({
                           projectName: "",
                           role: "",
                           durationText: "",
                           technologiesUsed: "",
                           description: "",
-                        })
-                      }
+                        });
+                      }}
                     >
                       <i className="bi bi-plus-lg" aria-hidden="true" />
                       Add Project
                     </button>
                   </div>
 
-                  {projectsArray.fields.length === 0 && <p className="candidate-form-empty">No projects added yet.</p>}
+                  {projectsArray.fields.length === 0 && (
+                    <p className="candidate-form-empty">Please add at least one project entry.</p>
+                  )}
+                  {projectsError && <div className="invalid-feedback d-block">{projectsError}</div>}
 
                   {projectsArray.fields.map((field, index) => (
                     <div className="candidate-form-card" key={field.id}>

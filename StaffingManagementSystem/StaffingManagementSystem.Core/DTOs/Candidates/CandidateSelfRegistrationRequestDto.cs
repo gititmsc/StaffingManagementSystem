@@ -53,6 +53,27 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
                     "Please list at least one primary skill.",
                     new[] { nameof(Skills) });
             }
+
+            if (Experience.Count == 0)
+            {
+                yield return new ValidationResult(
+                    "Please add at least one work experience entry.",
+                    new[] { nameof(Experience) });
+            }
+
+            if (Education.Count == 0)
+            {
+                yield return new ValidationResult(
+                    "Please add at least one education entry.",
+                    new[] { nameof(Education) });
+            }
+
+            if (Projects.Count == 0)
+            {
+                yield return new ValidationResult(
+                    "Please add at least one project entry.",
+                    new[] { nameof(Projects) });
+            }
         }
     }
 }
