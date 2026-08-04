@@ -183,9 +183,6 @@ export default function CandidateRegistration() {
                 We've received your profile and resume. Our recruitment team will review your application and get in
                 touch if there's a suitable opportunity for you.
               </p>
-              <Link className="candidate-registration-back-link" to="/login">
-                Back to sign in
-              </Link>
             </div>
           ) : (
             <>

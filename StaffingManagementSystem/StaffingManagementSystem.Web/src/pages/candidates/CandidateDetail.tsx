@@ -228,6 +228,8 @@ export default function CandidateDetail() {
     );
   }
 
+  const isPendingApproval = candidate.status === "PendingApproval";
+
   return (
     <div className="container py-4">
       <div className="candidate-detail-header">
@@ -461,7 +463,7 @@ export default function CandidateDetail() {
       <section className="candidate-detail-section">
         <div className="candidate-detail-section__header">
           <h2 className="candidate-detail-section__title mb-0">Resume</h2>
-          {canEdit && (
+          {canEdit && !isPendingApproval && (
             <label className="candidate-detail-upload-btn">
               {isUploadingResume && <span className="login-spinner" aria-hidden="true" />}
               <i className="bi bi-upload" aria-hidden="true" />
@@ -497,7 +499,7 @@ export default function CandidateDetail() {
                   <i className="bi bi-download" aria-hidden="true" />
                 </button>
               )}
-              {canEdit && (
+              {canEdit && !isPendingApproval && (
                 <button
                   type="button"
                   className="candidate-detail-icon-btn candidate-detail-icon-btn--danger"
@@ -516,7 +518,7 @@ export default function CandidateDetail() {
       <section className="candidate-detail-section">
         <div className="candidate-detail-section__header">
           <h2 className="candidate-detail-section__title mb-0">Other Attachments</h2>
-          {canEdit && (
+          {canEdit && !isPendingApproval && (
             <label className="candidate-detail-upload-btn">
               {isUploading && <span className="login-spinner" aria-hidden="true" />}
               <i className="bi bi-upload" aria-hidden="true" />
@@ -554,7 +556,7 @@ export default function CandidateDetail() {
                       <i className="bi bi-download" aria-hidden="true" />
                     </button>
                   )}
-                  {canEdit && (
+                  {canEdit && !isPendingApproval && (
                     <button
                       type="button"
                       className="candidate-detail-icon-btn candidate-detail-icon-btn--danger"
@@ -572,51 +574,54 @@ export default function CandidateDetail() {
         )}
       </section>
 
-      <section className="candidate-detail-section">
-        <h2 className="candidate-detail-section__title">Notes</h2>
+      {!isPendingApproval && (
+        <section className="candidate-detail-section">
+          <h2 className="candidate-detail-section__title">Notes</h2>
 
-        {canEdit && (
-          <div className="candidate-detail-note-form">
-            {noteError && (
-              <div className="candidate-detail-alert candidate-detail-alert--inline" role="alert">
-                <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
-                <span>{noteError}</span>
-              </div>
-            )}
-            <textarea
-              className="form-control"
-              rows={2}
-              placeholder="Add a note about this candidate..."
-              value={noteText}
-              onChange={(event) => setNoteText(event.target.value)}
-            />
-            <button
-              type="button"
-              className="candidate-detail-note-btn"
-              onClick={submitNote}
-              disabled={isSavingNote || !noteText.trim()}
-            >
-              {isSavingNote && <span className="login-spinner" aria-hidden="true" />}
-              Add Note
-            </button>
-          </div>
-        )}
-
-        {candidate.notes.length === 0 ? (
-          <p className="candidate-detail-empty">No notes yet.</p>
-        ) : (
-          <div className="candidate-detail-list">
-            {candidate.notes.map((note) => (
-              <div className="candidate-detail-item" key={note.id}>
-                <p className="candidate-detail-item__desc mb-1">{note.note}</p>
-                <div className="candidate-detail-item__meta">
-                  {note.createdByName || "Unknown"} · {formatDate(note.createdAtUtc, { year: "numeric", month: "short", day: "numeric" })}
+          {canEdit && (
+            <div className="candidate-detail-note-form">
+              {noteError && (
+                <div className="candidate-detail-alert candidate-detail-alert--inline" role="alert">
+                  <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+                  <span>{noteError}</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+              )}
+              <textarea
+                className="form-control"
+                rows={2}
+                placeholder="Add a note about this candidate..."
+                value={noteText}
+                onChange={(event) => setNoteText(event.target.value)}
+              />
+              <button
+                type="button"
+                className="candidate-detail-note-btn"
+                onClick={submitNote}
+                disabled={isSavingNote || !noteText.trim()}
+              >
+                {isSavingNote && <span className="login-spinner" aria-hidden="true" />}
+                Add Note
+              </button>
+            </div>
+          )}
+
+          {candidate.notes.length === 0 ? (
+            <p className="candidate-detail-empty">No notes yet.</p>
+          ) : (
+            <div className="candidate-detail-list">
+              {candidate.notes.map((note) => (
+                <div className="candidate-detail-item" key={note.id}>
+                  <p className="candidate-detail-item__desc mb-1">{note.note}</p>
+                  <div className="candidate-detail-item__meta">
+                    {note.createdByName || "Unknown"} ·{" "}
+                    {formatDate(note.createdAtUtc, { year: "numeric", month: "short", day: "numeric" })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {isRejectModalOpen && (
         <Modal
