@@ -6,6 +6,9 @@ export const CANDIDATE_STATUS_OPTIONS: ReadonlyArray<{ value: string; label: str
   { value: "Placed", label: "Placed" },
   { value: "OnHold", label: "On Hold" },
   { value: "Blacklisted", label: "Blacklisted" },
+  { value: "PendingApproval", label: "Pending Approval" },
+  { value: "Approved", label: "Approved" },
+  { value: "Rejected", label: "Rejected" },
 ];
 
 export const CANDIDATE_STATUS_LABELS: Record<string, string> = Object.fromEntries(
@@ -63,3 +66,6 @@ export const CANDIDATE_VIEW_ROLES = ["Admin", "Recruiter", "Viewer"];
 
 /** Reports are available to Admin and Recruiter only — Viewer has no reporting access. */
 export const REPORT_VIEW_ROLES = ["Admin", "Recruiter"];
+
+/** Only Admin can access the Candidate Approvals screen. */
+export const CANDIDATE_APPROVAL_ROLES = ["Admin"];

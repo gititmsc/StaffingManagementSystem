@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import { ITMLogo } from "@/components/brand/ITMLogo";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_LABELS, USER_MANAGEMENT_VIEW_ROLES } from "@/constants/roles";
-import { CANDIDATE_VIEW_ROLES, REPORT_VIEW_ROLES } from "@/constants/candidates";
+import { CANDIDATE_APPROVAL_ROLES, CANDIDATE_VIEW_ROLES, REPORT_VIEW_ROLES } from "@/constants/candidates";
 import "./AppLayout.css";
 
 /** Shared top navigation shell wrapping every authenticated page. */
@@ -12,6 +12,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const canViewUsers = !!user && USER_MANAGEMENT_VIEW_ROLES.includes(user.role);
   const canViewCandidates = !!user && CANDIDATE_VIEW_ROLES.includes(user.role);
   const canViewReports = !!user && REPORT_VIEW_ROLES.includes(user.role);
+  const canViewApprovals = !!user && CANDIDATE_APPROVAL_ROLES.includes(user.role);
 
   return (
     <div className="app-shell">
@@ -30,6 +31,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <NavLink to="/candidates" className={({ isActive }) => `app-topbar__link${isActive ? " is-active" : ""}`}>
               <i className="bi bi-person-lines-fill" aria-hidden="true" />
               Candidates
+            </NavLink>
+          )}
+          {canViewApprovals && (
+            <NavLink
+              to="/candidate-approvals"
+              className={({ isActive }) => `app-topbar__link${isActive ? " is-active" : ""}`}
+            >
+              <i className="bi bi-person-check" aria-hidden="true" />
+              Candidate Approvals
             </NavLink>
           )}
           {canViewReports && (

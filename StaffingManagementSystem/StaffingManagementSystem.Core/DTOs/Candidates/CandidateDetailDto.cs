@@ -29,7 +29,7 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
 
         public string? OtherSourceText { get; set; }
 
-        public Guid OwnerRecruiterId { get; set; }
+        public Guid? OwnerRecruiterId { get; set; }
 
         public string? OwnerRecruiterName { get; set; }
 
@@ -41,6 +41,13 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
 
         /// <summary>Null unless the caller is Admin or Recruiter.</summary>
         public decimal? CurrentSalary { get; set; }
+
+        /// <summary>Set only when Status is Rejected.</summary>
+        public string? RejectionComment { get; set; }
+
+        public DateTime? ApprovedAtUtc { get; set; }
+
+        public DateTime? RejectedAtUtc { get; set; }
 
         public decimal TotalExperienceYears { get; set; }
 

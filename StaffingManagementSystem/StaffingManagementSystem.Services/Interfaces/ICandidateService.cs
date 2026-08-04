@@ -38,5 +38,14 @@ namespace StaffingManagementSystem.Services.Interfaces
         Task<ApiResponse<object>> DeleteCandidateAsync(Guid id);
 
         Task<ApiResponse<CandidateNoteDto>> AddNoteAsync(Guid candidateId, AddCandidateNoteRequestDto request, Guid createdByUserId);
+
+        /// <summary>Approves a PendingApproval candidate — becomes visible to every role, searchable.</summary>
+        Task<ApiResponse<CandidateDetailDto>> ApproveAsync(Guid candidateId, Guid approvingAdminUserId);
+
+        /// <summary>
+        /// Rejects a PendingApproval candidate with a mandatory comment and sends a rejection
+        /// email to the candidate (best-effort).
+        /// </summary>
+        Task<ApiResponse<CandidateDetailDto>> RejectAsync(Guid candidateId, Guid rejectingAdminUserId, string comment);
     }
 }

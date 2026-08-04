@@ -25,5 +25,36 @@ namespace StaffingManagementSystem.Core.Interfaces
             string recipientName,
             string setupLink,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Notifies an Admin that a new candidate submitted the public self-registration form
+        /// and is awaiting approval. Links back to the Candidate Approvals screen rather than
+        /// attaching/linking the resume directly — the Admin downloads it from there once
+        /// signed in.
+        /// </summary>
+        Task SendCandidateRegistrationAdminNotificationAsync(
+            string toEmail,
+            string adminName,
+            string candidateName,
+            string candidateEmail,
+            string? candidateMobile,
+            decimal experienceYears,
+            string primarySkills,
+            DateTime registeredAtUtc,
+            string approvalsDeepLink,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>Sent to the candidate immediately after they submit the registration form.</summary>
+        Task SendCandidateRegistrationConfirmationEmailAsync(
+            string toEmail,
+            string candidateName,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>Sent to the candidate when an Admin rejects their pending registration.</summary>
+        Task SendCandidateRejectionEmailAsync(
+            string toEmail,
+            string candidateName,
+            string rejectionComment,
+            CancellationToken cancellationToken = default);
     }
 }

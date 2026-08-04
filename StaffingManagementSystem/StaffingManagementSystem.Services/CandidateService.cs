@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Logging;
 using StaffingManagementSystem.Core.Common;
 using StaffingManagementSystem.Core.DTOs.Candidates;
 using StaffingManagementSystem.Core.Entities;
 using StaffingManagementSystem.Core.Enums;
+using StaffingManagementSystem.Core.Interfaces;
 using StaffingManagementSystem.Repositories.Interfaces;
 using StaffingManagementSystem.Services.Interfaces;
 
@@ -12,11 +14,19 @@ namespace StaffingManagementSystem.Services
     {
         private readonly ICandidateRepository _candidateRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IEmailService _emailService;
+        private readonly ILogger<CandidateService> _logger;
 
-        public CandidateService(ICandidateRepository candidateRepository, IUserRepository userRepository)
+        public CandidateService(
+            ICandidateRepository candidateRepository,
+            IUserRepository userRepository,
+            IEmailService emailService,
+            ILogger<CandidateService> logger)
         {
             _candidateRepository = candidateRepository;
             _userRepository = userRepository;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         public async Task<ApiResponse<CandidateListResultDto>> GetAllCandidatesAsync(CandidateListRequestDto request, string actorRole)
@@ -26,6 +36,15 @@ namespace StaffingManagementSystem.Services
 
             // Repository already orders by CreatedAtUtc descending; Select/Where preserve that order.
             IEnumerable<CandidateListItemDto> filtered = candidates.Select(c => MapToListItemDto(c, userNames));
+
+            // Self-registered candidates stay invisible to Recruiter/Viewer until an Admin
+            // approves (or permanently, if rejected). Admin always sees everything.
+            if (!IsAdmin(actorRole))
+            {
+                filtered = filtered.Where(d =>
+                    !string.Equals(d.Status, nameof(CandidateStatus.PendingApproval), StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(d.Status, nameof(CandidateStatus.Rejected), StringComparison.OrdinalIgnoreCase));
+            }
 
             var term = Norm(request.Search)?.ToLowerInvariant();
             if (term is not null)
@@ -78,6 +97,14 @@ namespace StaffingManagementSystem.Services
                 return ApiResponse<CandidateDetailDto>.FailureResponse("Candidate not found.", ["Candidate not found."]);
             }
 
+            // Recruiter/Viewer can't view a PendingApproval/Rejected candidate even via a direct
+            // URL — same rule as the list endpoint, enforced again here.
+            if (!IsAdmin(actorRole) &&
+                (candidate.Status == CandidateStatus.PendingApproval || candidate.Status == CandidateStatus.Rejected))
+            {
+                return ApiResponse<CandidateDetailDto>.FailureResponse("Candidate not found.", ["Candidate not found."]);
+            }
+
             var userNames = await GetUserNameLookupAsync();
             var dto = MapToDetailDto(candidate, userNames);
             ApplyFieldVisibility(dto, actorRole);
@@ -99,9 +126,9 @@ namespace StaffingManagementSystem.Services
             var candidateId = Guid.NewGuid();
 
             var skills = await BuildSkillsAsync(candidateId, request.Skills);
-            var experience = BuildExperience(candidateId, request.Experience);
-            var education = BuildEducation(candidateId, request.Education);
-            var projects = BuildProjects(candidateId, request.Projects);
+            var experience = CandidateGraphBuilder.BuildExperience(candidateId, request.Experience);
+            var education = CandidateGraphBuilder.BuildEducation(candidateId, request.Education);
+            var projects = CandidateGraphBuilder.BuildProjects(candidateId, request.Projects);
 
             var candidate = new Candidate
             {
@@ -122,7 +149,7 @@ namespace StaffingManagementSystem.Services
                 CostToCompany = IsAdmin(actorRole) ? request.CostToCompany : null,
                 CostToVendor = request.CostToVendor,
                 CurrentSalary = request.CurrentSalary,
-                TotalExperienceYears = CalculateTotalExperienceYears(experience),
+                TotalExperienceYears = CandidateGraphBuilder.CalculateTotalExperienceYears(experience),
                 CreatedAtUtc = DateTime.UtcNow,
                 Skills = skills,
                 Experience = experience,
@@ -175,9 +202,9 @@ namespace StaffingManagementSystem.Services
             var isDuplicateEmail = await _candidateRepository.EmailExistsAsync(normalizedEmail, id);
 
             var skills = await BuildSkillsAsync(id, request.Skills);
-            var experience = BuildExperience(id, request.Experience);
-            var education = BuildEducation(id, request.Education);
-            var projects = BuildProjects(id, request.Projects);
+            var experience = CandidateGraphBuilder.BuildExperience(id, request.Experience);
+            var education = CandidateGraphBuilder.BuildEducation(id, request.Education);
+            var projects = CandidateGraphBuilder.BuildProjects(id, request.Projects);
 
             var updated = new Candidate
             {
@@ -200,7 +227,7 @@ namespace StaffingManagementSystem.Services
                 CostToCompany = IsAdmin(actorRole) ? request.CostToCompany : existing.CostToCompany,
                 CostToVendor = request.CostToVendor,
                 CurrentSalary = request.CurrentSalary,
-                TotalExperienceYears = CalculateTotalExperienceYears(experience),
+                TotalExperienceYears = CandidateGraphBuilder.CalculateTotalExperienceYears(experience),
             };
 
             await _candidateRepository.UpdateAsync(updated, skills, experience, education, projects);
@@ -262,6 +289,85 @@ namespace StaffingManagementSystem.Services
             return ApiResponse<CandidateNoteDto>.SuccessResponse(dto, "Note added.");
         }
 
+        public async Task<ApiResponse<CandidateDetailDto>> ApproveAsync(Guid candidateId, Guid approvingAdminUserId)
+        {
+            var existing = await _candidateRepository.GetByIdAsync(candidateId);
+            if (existing is null)
+            {
+                return ApiResponse<CandidateDetailDto>.FailureResponse("Candidate not found.", ["Candidate not found."]);
+            }
+
+            if (existing.Status != CandidateStatus.PendingApproval)
+            {
+                return ApiResponse<CandidateDetailDto>.FailureResponse(
+                    "Only a candidate awaiting approval can be approved.",
+                    ["Only a candidate awaiting approval can be approved."]);
+            }
+
+            await _candidateRepository.UpdateApprovalStatusAsync(
+                candidateId,
+                CandidateStatus.Approved,
+                rejectionComment: null,
+                approvedByUserId: approvingAdminUserId,
+                approvedAtUtc: DateTime.UtcNow,
+                rejectedByUserId: null,
+                rejectedAtUtc: null);
+
+            var refreshed = await _candidateRepository.GetByIdAsync(candidateId);
+            var userNames = await GetUserNameLookupAsync();
+            var dto = MapToDetailDto(refreshed!, userNames);
+
+            return ApiResponse<CandidateDetailDto>.SuccessResponse(dto, "Candidate approved.");
+        }
+
+        public async Task<ApiResponse<CandidateDetailDto>> RejectAsync(Guid candidateId, Guid rejectingAdminUserId, string comment)
+        {
+            var trimmedComment = comment?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedComment))
+            {
+                return ApiResponse<CandidateDetailDto>.FailureResponse(
+                    "A rejection comment is required.", ["A rejection comment is required."]);
+            }
+
+            var existing = await _candidateRepository.GetByIdAsync(candidateId);
+            if (existing is null)
+            {
+                return ApiResponse<CandidateDetailDto>.FailureResponse("Candidate not found.", ["Candidate not found."]);
+            }
+
+            if (existing.Status != CandidateStatus.PendingApproval)
+            {
+                return ApiResponse<CandidateDetailDto>.FailureResponse(
+                    "Only a candidate awaiting approval can be rejected.",
+                    ["Only a candidate awaiting approval can be rejected."]);
+            }
+
+            await _candidateRepository.UpdateApprovalStatusAsync(
+                candidateId,
+                CandidateStatus.Rejected,
+                rejectionComment: trimmedComment,
+                approvedByUserId: null,
+                approvedAtUtc: null,
+                rejectedByUserId: rejectingAdminUserId,
+                rejectedAtUtc: DateTime.UtcNow);
+
+            try
+            {
+                await _emailService.SendCandidateRejectionEmailAsync(existing.Email, existing.FullName, trimmedComment);
+            }
+            catch (Exception ex)
+            {
+                // Best-effort: a failed email must not undo or block the rejection itself.
+                _logger.LogError(ex, "Failed to send rejection email to candidate {CandidateEmail}", existing.Email);
+            }
+
+            var refreshed = await _candidateRepository.GetByIdAsync(candidateId);
+            var userNames = await GetUserNameLookupAsync();
+            var dto = MapToDetailDto(refreshed!, userNames);
+
+            return ApiResponse<CandidateDetailDto>.SuccessResponse(dto, "Candidate rejected.");
+        }
+
         // ---------- helpers ----------
 
         private async Task<Dictionary<Guid, string>> GetUserNameLookupAsync()
@@ -302,74 +408,11 @@ namespace StaffingManagementSystem.Services
             return result;
         }
 
-        private static List<CandidateExperience> BuildExperience(Guid candidateId, List<CandidateExperienceInputDto> inputs)
-            => inputs.Select(input => new CandidateExperience
-            {
-                Id = Guid.NewGuid(),
-                CandidateId = candidateId,
-                CompanyName = input.CompanyName.Trim(),
-                JobTitle = input.JobTitle.Trim(),
-                EmploymentType = ParseOptionalEnum<EmploymentType>(input.EmploymentType),
-                StartDate = input.StartDate,
-                EndDate = input.IsCurrent ? null : input.EndDate,
-                IsCurrent = input.IsCurrent,
-                Location = Norm(input.Location),
-                Description = Norm(input.Description),
-            }).ToList();
-
-        private static List<CandidateEducation> BuildEducation(Guid candidateId, List<CandidateEducationInputDto> inputs)
-            => inputs.Select(input => new CandidateEducation
-            {
-                Id = Guid.NewGuid(),
-                CandidateId = candidateId,
-                Degree = input.Degree.Trim(),
-                Institution = input.Institution.Trim(),
-                FieldOfStudy = Norm(input.FieldOfStudy),
-                StartYear = input.StartYear,
-                EndYear = input.EndYear,
-                IsExpected = input.IsExpected,
-                Grade = Norm(input.Grade),
-            }).ToList();
-
-        private static List<CandidateProject> BuildProjects(Guid candidateId, List<CandidateProjectInputDto> inputs)
-            => inputs.Select(input => new CandidateProject
-            {
-                Id = Guid.NewGuid(),
-                CandidateId = candidateId,
-                ProjectName = input.ProjectName.Trim(),
-                Role = Norm(input.Role),
-                DurationText = Norm(input.DurationText),
-                TechnologiesUsed = Norm(input.TechnologiesUsed),
-                Description = Norm(input.Description),
-            }).ToList();
-
-        /// <summary>
-        /// Sums each experience entry's duration in months and converts to years (1 decimal place).
-        /// Overlapping date ranges are not de-duplicated — this is an estimate, not a precise total.
-        /// </summary>
-        private static decimal CalculateTotalExperienceYears(List<CandidateExperience> experience)
-        {
-            var totalMonths = 0;
-            var now = DateTime.UtcNow;
-
-            foreach (var entry in experience)
-            {
-                var end = entry.IsCurrent ? now : (entry.EndDate ?? entry.StartDate);
-                if (end < entry.StartDate)
-                {
-                    continue;
-                }
-
-                var months = ((end.Year - entry.StartDate.Year) * 12) + (end.Month - entry.StartDate.Month);
-                totalMonths += Math.Max(months, 0);
-            }
-
-            return Math.Round(totalMonths / 12m, 1);
-        }
-
         private static CandidateListItemDto MapToListItemDto(Candidate candidate, Dictionary<Guid, string> userNames)
         {
-            userNames.TryGetValue(candidate.OwnerRecruiterId, out var ownerName);
+            var ownerName = candidate.OwnerRecruiterId.HasValue
+                ? userNames.GetValueOrDefault(candidate.OwnerRecruiterId.Value)
+                : null;
             var currentExperience = candidate.Experience.FirstOrDefault(e => e.IsCurrent);
 
             return new CandidateListItemDto
@@ -395,7 +438,9 @@ namespace StaffingManagementSystem.Services
 
         private static CandidateDetailDto MapToDetailDto(Candidate candidate, Dictionary<Guid, string> userNames)
         {
-            userNames.TryGetValue(candidate.OwnerRecruiterId, out var ownerName);
+            var ownerName = candidate.OwnerRecruiterId.HasValue
+                ? userNames.GetValueOrDefault(candidate.OwnerRecruiterId.Value)
+                : null;
 
             return new CandidateDetailDto
             {
@@ -417,6 +462,9 @@ namespace StaffingManagementSystem.Services
                 CostToCompany = candidate.CostToCompany,
                 CostToVendor = candidate.CostToVendor,
                 CurrentSalary = candidate.CurrentSalary,
+                RejectionComment = candidate.RejectionComment,
+                ApprovedAtUtc = candidate.ApprovedAtUtc,
+                RejectedAtUtc = candidate.RejectedAtUtc,
                 TotalExperienceYears = candidate.TotalExperienceYears,
                 CreatedAtUtc = candidate.CreatedAtUtc,
                 UpdatedAtUtc = candidate.UpdatedAtUtc,

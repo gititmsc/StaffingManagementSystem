@@ -38,6 +38,12 @@ export default function CandidateDetail() {
   const [isUploadingResume, setIsUploadingResume] = useState(false);
   const [pendingDeleteAttachment, setPendingDeleteAttachment] = useState<CandidateAttachment | null>(null);
 
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectComment, setRejectComment] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+
   const resume = attachments.find((a) => a.type === "Resume") ?? null;
   const otherAttachments = attachments.filter((a) => a.type !== "Resume");
 
@@ -143,6 +149,42 @@ export default function CandidateDetail() {
     await loadAttachments();
   };
 
+  const handleApprove = async () => {
+    if (!id) return;
+    setIsApproving(true);
+    setApprovalError(null);
+
+    const response = await candidatesService.approveCandidate(id);
+
+    setIsApproving(false);
+    if (!response.success) {
+      setApprovalError(response.message || "Unable to approve this candidate.");
+      return;
+    }
+
+    await loadCandidate();
+  };
+
+  const confirmReject = async () => {
+    if (!id || !rejectComment.trim()) return;
+    setIsRejecting(true);
+    setApprovalError(null);
+
+    const response = await candidatesService.rejectCandidate(id, rejectComment.trim());
+
+    setIsRejecting(false);
+    if (!response.success) {
+      setApprovalError(response.message || "Unable to reject this candidate.");
+      setIsRejectModalOpen(false);
+      setRejectComment("");
+      return;
+    }
+
+    setIsRejectModalOpen(false);
+    setRejectComment("");
+    await loadCandidate();
+  };
+
   const submitNote = async () => {
     if (!id || !noteText.trim()) return;
     setIsSavingNote(true);
@@ -200,13 +242,42 @@ export default function CandidateDetail() {
           {candidate.title && <p className="candidate-detail-title-line mb-1">{candidate.title}</p>}
           <p className="text-muted mb-0">{candidate.email}</p>
         </div>
-        {canEdit && (
-          <button type="button" className="candidate-detail-edit-btn" onClick={() => navigate(`/candidates/${candidate.id}/edit`)}>
-            <i className="bi bi-pencil-fill" aria-hidden="true" />
-            Edit Candidate
-          </button>
-        )}
+        <div className="candidate-detail-header__actions">
+          {currentUser?.role === "Admin" && candidate.status === "PendingApproval" && (
+            <>
+              <button
+                type="button"
+                className="candidate-detail-approve-btn"
+                onClick={handleApprove}
+                disabled={isApproving}
+              >
+                {isApproving ? "Approving..." : "Approve"}
+              </button>
+              <button
+                type="button"
+                className="candidate-detail-reject-btn"
+                onClick={() => setIsRejectModalOpen(true)}
+                disabled={isApproving}
+              >
+                Reject
+              </button>
+            </>
+          )}
+          {canEdit && (
+            <button type="button" className="candidate-detail-edit-btn" onClick={() => navigate(`/candidates/${candidate.id}/edit`)}>
+              <i className="bi bi-pencil-fill" aria-hidden="true" />
+              Edit Candidate
+            </button>
+          )}
+        </div>
       </div>
+
+      {approvalError && (
+        <div className="candidate-detail-alert" role="alert">
+          <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+          <span>{approvalError}</span>
+        </div>
+      )}
 
       <section className="candidate-detail-section">
         <h2 className="candidate-detail-section__title">Personal Details</h2>
@@ -215,6 +286,12 @@ export default function CandidateDetail() {
             <dt>Status</dt>
             <dd>{CANDIDATE_STATUS_LABELS[candidate.status] ?? candidate.status}</dd>
           </div>
+          {candidate.status === "Rejected" && candidate.rejectionComment && (
+            <div>
+              <dt>Rejection Comment</dt>
+              <dd>{candidate.rejectionComment}</dd>
+            </div>
+          )}
           <div>
             <dt>Phone</dt>
             <dd>{candidate.phone || "—"}</dd>
@@ -540,6 +617,49 @@ export default function CandidateDetail() {
           </div>
         )}
       </section>
+
+      {isRejectModalOpen && (
+        <Modal
+          title="Reject Candidate"
+          onClose={() => {
+            setIsRejectModalOpen(false);
+            setRejectComment("");
+          }}
+          size="sm"
+        >
+          <p className="mb-2">
+            A comment is required — it will be included in the email sent to the candidate.
+          </p>
+          <textarea
+            className="form-control"
+            rows={4}
+            placeholder="Reason for rejection..."
+            value={rejectComment}
+            onChange={(event) => setRejectComment(event.target.value)}
+            autoFocus
+          />
+          <div className="candidate-detail-confirm-actions">
+            <button
+              type="button"
+              className="candidate-detail-btn candidate-detail-btn--ghost"
+              onClick={() => {
+                setIsRejectModalOpen(false);
+                setRejectComment("");
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="candidate-detail-btn candidate-detail-btn--danger"
+              onClick={confirmReject}
+              disabled={!rejectComment.trim() || isRejecting}
+            >
+              {isRejecting ? "Rejecting..." : "Reject Candidate"}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {pendingDeleteAttachment && (
         <Modal title="Delete Attachment" onClose={() => setPendingDeleteAttachment(null)} size="sm">

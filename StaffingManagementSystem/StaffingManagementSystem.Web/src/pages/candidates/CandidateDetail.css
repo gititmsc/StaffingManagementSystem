@@ -32,6 +32,45 @@
   color: var(--itm-accent);
 }
 
+.candidate-detail-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.candidate-detail-approve-btn,
+.candidate-detail-reject-btn {
+  border: none;
+  border-radius: var(--itm-radius-control);
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--itm-transition);
+}
+
+.candidate-detail-approve-btn:hover:not(:disabled),
+.candidate-detail-reject-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.candidate-detail-approve-btn:disabled,
+.candidate-detail-reject-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.candidate-detail-approve-btn {
+  background: rgba(40, 167, 69, 0.14);
+  color: var(--itm-success);
+}
+
+.candidate-detail-reject-btn {
+  background: rgba(220, 53, 69, 0.12);
+  color: var(--itm-secondary);
+}
+
 .candidate-detail-edit-btn {
   display: inline-flex;
   align-items: center;

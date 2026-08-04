@@ -1,0 +1,152 @@
+.candidate-registration-page {
+  min-height: 100vh;
+  display: flex;
+  background: var(--itm-bg);
+}
+
+.candidate-registration-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+}
+
+.candidate-registration-card {
+  width: 100%;
+  max-width: 820px;
+  background: var(--itm-card-bg);
+  border: 1px solid var(--itm-border);
+  border-radius: var(--itm-radius-card);
+  box-shadow: var(--itm-shadow-soft);
+  padding: 2.25rem 2.25rem 2rem;
+  animation: itm-fade-in-up 500ms ease both;
+}
+
+.candidate-registration-card__heading {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--itm-primary);
+  margin-top: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.candidate-registration-card__subtitle {
+  font-size: 0.9rem;
+  color: var(--itm-muted);
+  margin-bottom: 1.5rem;
+}
+
+.candidate-registration-field {
+  margin-bottom: 1.1rem;
+}
+
+.candidate-registration-field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--itm-text);
+  margin-bottom: 0.4rem;
+}
+
+.candidate-registration-hint {
+  font-size: 0.78rem;
+  color: var(--itm-muted);
+  margin-top: 0.3rem;
+}
+
+.candidate-registration-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #fff;
+  background: var(--itm-secondary);
+  border-radius: var(--itm-radius-control);
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.candidate-registration-submit {
+  width: 100%;
+  border: none;
+  border-radius: var(--itm-radius-control);
+  padding: 0.75rem 1rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--itm-gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  transition: filter var(--itm-transition), transform var(--itm-transition);
+  box-shadow: 0 6px 16px rgba(var(--itm-primary-rgb), 0.25);
+}
+
+.candidate-registration-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.candidate-registration-submit:disabled {
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+
+.candidate-registration-spinner {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: itm-spin 0.7s linear infinite;
+}
+
+@keyframes itm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.candidate-registration-signin-link {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--itm-muted);
+  margin: 1.25rem 0 0;
+}
+
+.candidate-registration-success {
+  text-align: center;
+  padding: 1.5rem 0 0.5rem;
+}
+
+.candidate-registration-success i {
+  font-size: 2.5rem;
+  color: var(--itm-success);
+}
+
+.candidate-registration-success h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--itm-primary);
+  margin: 1rem 0 0.5rem;
+}
+
+.candidate-registration-success p {
+  color: var(--itm-muted);
+  line-height: 1.6;
+}
+
+.candidate-registration-back-link {
+  display: inline-block;
+  margin-top: 1rem;
+  font-weight: 600;
+  color: var(--itm-accent);
+}
+
+@media (max-width: 575.98px) {
+  .candidate-registration-card {
+    padding: 1.75rem 1.25rem 1.5rem;
+  }
+}

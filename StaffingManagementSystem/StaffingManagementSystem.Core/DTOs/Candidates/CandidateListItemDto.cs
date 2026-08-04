@@ -24,7 +24,7 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
 
         public List<string> Skills { get; set; } = new();
 
-        public Guid OwnerRecruiterId { get; set; }
+        public Guid? OwnerRecruiterId { get; set; }
 
         public string? OwnerRecruiterName { get; set; }
 

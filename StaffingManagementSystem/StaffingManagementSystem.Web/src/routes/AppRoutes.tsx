@@ -2,16 +2,23 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Login from "@/pages/login/Login";
 import ForgotPassword from "@/pages/forgot-password/ForgotPassword";
 import ResetPassword from "@/pages/reset-password/ResetPassword";
+import CandidateRegistration from "@/pages/candidate-registration/CandidateRegistration";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import Users from "@/pages/users/Users";
 import CandidateList from "@/pages/candidates/CandidateList";
 import CandidateForm from "@/pages/candidates/CandidateForm";
 import CandidateDetail from "@/pages/candidates/CandidateDetail";
+import CandidateApprovals from "@/pages/candidate-approvals/CandidateApprovals";
 import Reports from "@/pages/reports/Reports";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { USER_MANAGEMENT_VIEW_ROLES } from "@/constants/roles";
-import { CANDIDATE_EDIT_ROLES, CANDIDATE_VIEW_ROLES, REPORT_VIEW_ROLES } from "@/constants/candidates";
+import {
+  CANDIDATE_APPROVAL_ROLES,
+  CANDIDATE_EDIT_ROLES,
+  CANDIDATE_VIEW_ROLES,
+  REPORT_VIEW_ROLES,
+} from "@/constants/candidates";
 
 export function AppRoutes() {
   return (
@@ -20,6 +27,7 @@ export function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/register" element={<CandidateRegistration />} />
       <Route
         path="/dashboard"
         element={
@@ -76,6 +84,16 @@ export function AppRoutes() {
           <ProtectedRoute roles={CANDIDATE_VIEW_ROLES}>
             <AppLayout>
               <CandidateDetail />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/candidate-approvals"
+        element={
+          <ProtectedRoute roles={CANDIDATE_APPROVAL_ROLES}>
+            <AppLayout>
+              <CandidateApprovals />
             </AppLayout>
           </ProtectedRoute>
         }

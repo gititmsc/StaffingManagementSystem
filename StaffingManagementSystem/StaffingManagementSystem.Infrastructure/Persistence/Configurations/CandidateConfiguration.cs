@@ -62,8 +62,10 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
             builder.Property(c => c.OtherSourceText)
                 .HasMaxLength(200);
 
-            builder.Property(c => c.OwnerRecruiterId)
-                .IsRequired();
+            builder.Property(c => c.OwnerRecruiterId);
+
+            builder.Property(c => c.RejectionComment)
+                .HasMaxLength(1000);
 
             builder.Property(c => c.CostToCompany)
                 .HasColumnType("decimal(12,2)");

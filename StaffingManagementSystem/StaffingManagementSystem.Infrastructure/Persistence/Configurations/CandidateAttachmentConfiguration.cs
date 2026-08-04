@@ -40,8 +40,7 @@ namespace StaffingManagementSystem.Infrastructure.Persistence.Configurations
             builder.Property(a => a.FileSizeBytes)
                 .IsRequired();
 
-            builder.Property(a => a.UploadedByUserId)
-                .IsRequired();
+            builder.Property(a => a.UploadedByUserId);
 
             builder.Property(a => a.UploadedAtUtc)
                 .IsRequired();

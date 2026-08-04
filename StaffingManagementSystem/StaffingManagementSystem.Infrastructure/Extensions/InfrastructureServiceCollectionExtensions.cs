@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using StaffingManagementSystem.Core.Configuration;
 using StaffingManagementSystem.Core.Interfaces;
 using StaffingManagementSystem.Infrastructure.Email;
@@ -24,11 +25,14 @@ namespace StaffingManagementSystem.Infrastructure.Extensions
             services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
             services.Configure<AppUrlSettings>(configuration);
             services.Configure<FileStorageSettings>(configuration.GetSection(FileStorageSettings.SectionName));
+            services.Configure<RecaptchaSettings>(configuration.GetSection(RecaptchaSettings.SectionName));
+            services.Configure<CandidateRegistrationSettings>(configuration.GetSection(CandidateRegistrationSettings.SectionName));
 
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IEmailService, SmtpEmailService>();
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
+            services.AddHttpClient<IRecaptchaVerifier, RecaptchaVerifier>();
 
             return services;
         }

@@ -181,7 +181,7 @@ export default function CandidateForm() {
         status: c.status,
         source: c.source ?? "",
         otherSourceText: c.otherSourceText ?? "",
-        ownerRecruiterId: c.ownerRecruiterId,
+        ownerRecruiterId: c.ownerRecruiterId ?? "",
         costToCompany: c.costToCompany != null ? String(c.costToCompany) : "",
         costToVendor: c.costToVendor != null ? String(c.costToVendor) : "",
         currentSalary: c.currentSalary != null ? String(c.currentSalary) : "",

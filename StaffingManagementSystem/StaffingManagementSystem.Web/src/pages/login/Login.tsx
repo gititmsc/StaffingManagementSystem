@@ -204,6 +204,10 @@ export default function Login() {
               {isSubmitting ? "Signing In..." : "Sign In"}
             </button>
           </form>
+
+          <p className="login-register-link">
+            Are you a candidate? <Link to="/register">Register here</Link>
+          </p>
         </div>
       </main>
     </div>

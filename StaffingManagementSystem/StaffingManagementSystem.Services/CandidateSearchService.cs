@@ -213,7 +213,9 @@ namespace StaffingManagementSystem.Services
 
         private static CandidateListItemDto MapToListItemDto(Candidate candidate, Dictionary<Guid, string> userNames)
         {
-            userNames.TryGetValue(candidate.OwnerRecruiterId, out var ownerName);
+            var ownerName = candidate.OwnerRecruiterId.HasValue
+                ? userNames.GetValueOrDefault(candidate.OwnerRecruiterId.Value)
+                : null;
             var currentExperience = candidate.Experience.FirstOrDefault(e => e.IsCurrent);
 
             return new CandidateListItemDto

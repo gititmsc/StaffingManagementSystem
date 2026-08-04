@@ -26,7 +26,8 @@ namespace StaffingManagementSystem.Core.Entities
 
         public long FileSizeBytes { get; set; }
 
-        public Guid UploadedByUserId { get; set; }
+        /// <summary>Null for a resume submitted through the anonymous public registration form.</summary>
+        public Guid? UploadedByUserId { get; set; }
 
         public DateTime UploadedAtUtc { get; set; }
     }

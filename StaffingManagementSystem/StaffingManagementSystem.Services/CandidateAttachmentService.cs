@@ -62,7 +62,7 @@ namespace StaffingManagementSystem.Services
             string contentType,
             long fileSizeBytes,
             Stream content,
-            Guid uploadedByUserId)
+            Guid? uploadedByUserId)
         {
             if (!await _candidateRepository.ExistsAsync(candidateId))
             {
@@ -127,7 +127,7 @@ namespace StaffingManagementSystem.Services
             string contentType,
             long fileSizeBytes,
             Stream content,
-            Guid uploadedByUserId,
+            Guid? uploadedByUserId,
             CandidateAttachmentType type,
             bool skipExistsCheck = false)
         {
@@ -194,7 +194,9 @@ namespace StaffingManagementSystem.Services
                 FileName = attachment.FileName,
                 ContentType = attachment.ContentType,
                 FileSizeBytes = attachment.FileSizeBytes,
-                UploadedByName = userNames.GetValueOrDefault(attachment.UploadedByUserId),
+                UploadedByName = attachment.UploadedByUserId.HasValue
+                    ? userNames.GetValueOrDefault(attachment.UploadedByUserId.Value)
+                    : "Candidate (self-registered)",
                 UploadedAtUtc = attachment.UploadedAtUtc,
             };
     }

@@ -17,7 +17,7 @@ export interface CandidateListItem {
   totalExperienceYears: number;
   currentCompany?: string | null;
   skills: string[];
-  ownerRecruiterId: string;
+  ownerRecruiterId?: string | null;
   ownerRecruiterName?: string | null;
   createdAtUtc: string;
 }
@@ -107,7 +107,7 @@ export interface CandidateDetail {
   status: string;
   source?: string | null;
   otherSourceText?: string | null;
-  ownerRecruiterId: string;
+  ownerRecruiterId?: string | null;
   ownerRecruiterName?: string | null;
   /** Only present when the signed-in user is Admin — null/omitted for Recruiter and Viewer. */
   costToCompany?: number | null;
@@ -115,6 +115,10 @@ export interface CandidateDetail {
   costToVendor?: number | null;
   /** Only present when the signed-in user is Admin or Recruiter — null/omitted for Viewer. */
   currentSalary?: number | null;
+  /** Set only when status is "Rejected". */
+  rejectionComment?: string | null;
+  approvedAtUtc?: string | null;
+  rejectedAtUtc?: string | null;
   totalExperienceYears: number;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
@@ -327,6 +331,26 @@ async function downloadAttachment(candidateId: string, attachmentId: string, fal
   window.URL.revokeObjectURL(blobUrl);
 }
 
+/** Approves a PendingApproval candidate — Admin only. */
+async function approveCandidate(id: string): Promise<ApiResponse<CandidateDetail>> {
+  try {
+    const response = await apiClient.post<ApiResponse<CandidateDetail>>(`/api/candidates/${id}/approve`);
+    return response.data;
+  } catch (error) {
+    return toFailure<CandidateDetail>(error);
+  }
+}
+
+/** Rejects a PendingApproval candidate with a mandatory comment — Admin only. */
+async function rejectCandidate(id: string, comment: string): Promise<ApiResponse<CandidateDetail>> {
+  try {
+    const response = await apiClient.post<ApiResponse<CandidateDetail>>(`/api/candidates/${id}/reject`, { comment });
+    return response.data;
+  } catch (error) {
+    return toFailure<CandidateDetail>(error);
+  }
+}
+
 export const candidatesService = {
   getAll,
   getById,
@@ -339,4 +363,6 @@ export const candidatesService = {
   uploadResume,
   removeAttachment,
   downloadAttachment,
+  approveCandidate,
+  rejectCandidate,
 };

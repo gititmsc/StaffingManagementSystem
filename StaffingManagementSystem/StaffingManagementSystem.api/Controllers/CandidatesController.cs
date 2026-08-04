@@ -195,6 +195,38 @@ namespace StaffingManagementSystem.Api.Controllers
             return File(download.Content, download.ContentType, download.FileName);
         }
 
+        /// <summary>Approves a PendingApproval candidate — becomes visible/searchable for every role.</summary>
+        [HttpPost("{id:guid}/approve")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(ApiResponse<CandidateDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CandidateDetailDto>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Approve(Guid id)
+        {
+            var result = await _candidateService.ApproveAsync(id, GetActingUserId());
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Rejects a PendingApproval candidate. A rejection comment is mandatory.</summary>
+        [HttpPost("{id:guid}/reject")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(ApiResponse<CandidateDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CandidateDetailDto>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Reject(Guid id, [FromBody] RejectCandidateRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(ApiResponse<CandidateDetailDto>.FailureResponse("Validation failed.", errors));
+            }
+
+            var result = await _candidateService.RejectAsync(id, GetActingUserId(), request.Comment);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
         /// <summary>Deletes a candidate attachment (resume or general document).</summary>
         [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
         [Authorize(Roles = EditRoles)]

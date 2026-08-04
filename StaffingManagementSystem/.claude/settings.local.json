@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet build *)"
+      "Bash(dotnet build *)",
+      "Bash(nohup dotnet run --no-launch-profile --urls http://localhost:5301)",
+      "Bash(disown)",
+      "Bash(curl -s -o /tmp/swagger_reg.json -w \"%{http_code}\\\\n\" http://localhost:5301/swagger/v1/swagger.json)",
+      "Read(//tmp/**)",
+      "Bash(grep -o '\"/api/candidate-registration\"\\\\|\"/api/candidates/{id}/approve\"\\\\|\"/api/candidates/{id}/reject\"' /tmp/swagger_reg.json | sort -u)",
+      "Bash(tasklist //FI \"IMAGENAME eq StaffingManagementSystem.Api.exe\")",
+      "Bash(taskkill //F //PID 19332)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)"
     ]
   }
 }

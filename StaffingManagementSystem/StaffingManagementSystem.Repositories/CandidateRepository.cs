@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StaffingManagementSystem.Core.Entities;
+using StaffingManagementSystem.Core.Enums;
 using StaffingManagementSystem.Infrastructure.Persistence;
 using StaffingManagementSystem.Repositories.Interfaces;
 
@@ -41,6 +42,12 @@ namespace StaffingManagementSystem.Repositories
                 !c.IsDeleted &&
                 c.Email == email &&
                 (excludeCandidateId == null || c.Id != excludeCandidateId));
+
+        public Task<bool> HasActiveDuplicateAsync(string email, string? phone)
+            => _dbContext.Candidates.AnyAsync(c =>
+                !c.IsDeleted &&
+                c.Status != CandidateStatus.Rejected &&
+                (c.Email == email || (phone != null && c.Phone == phone)));
 
         public async Task<Guid> GetOrCreateSkillIdAsync(string skillName)
         {
@@ -135,6 +142,27 @@ namespace StaffingManagementSystem.Repositories
 
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
+        }
+
+        public async Task UpdateApprovalStatusAsync(
+            Guid candidateId,
+            CandidateStatus status,
+            string? rejectionComment,
+            Guid? approvedByUserId,
+            DateTime? approvedAtUtc,
+            Guid? rejectedByUserId,
+            DateTime? rejectedAtUtc)
+        {
+            await _dbContext.Candidates
+                .Where(c => c.Id == candidateId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(c => c.Status, status)
+                    .SetProperty(c => c.RejectionComment, rejectionComment)
+                    .SetProperty(c => c.ApprovedByUserId, approvedByUserId)
+                    .SetProperty(c => c.ApprovedAtUtc, approvedAtUtc)
+                    .SetProperty(c => c.RejectedByUserId, rejectedByUserId)
+                    .SetProperty(c => c.RejectedAtUtc, rejectedAtUtc)
+                    .SetProperty(c => c.UpdatedAtUtc, DateTime.UtcNow));
         }
 
         public async Task SoftDeleteAsync(Guid id)

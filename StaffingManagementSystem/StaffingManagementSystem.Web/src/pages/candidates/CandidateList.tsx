@@ -27,6 +27,12 @@ function statusBadgeClass(status: string): string {
       return "candidates-badge--on-hold";
     case "Blacklisted":
       return "candidates-badge--blacklisted";
+    case "PendingApproval":
+      return "candidates-badge--pending";
+    case "Approved":
+      return "candidates-badge--approved";
+    case "Rejected":
+      return "candidates-badge--rejected";
     default:
       return "candidates-badge--new";
   }

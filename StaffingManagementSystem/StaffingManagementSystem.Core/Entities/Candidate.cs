@@ -39,8 +39,22 @@ namespace StaffingManagementSystem.Core.Entities
         /// </summary>
         public string? OtherSourceText { get; set; }
 
-        /// <summary>Recruiter who owns/added this candidate (RMS SRS 3.3.7).</summary>
-        public Guid OwnerRecruiterId { get; set; }
+        /// <summary>
+        /// Recruiter who owns/added this candidate (RMS SRS 3.3.7). Null for a self-registered
+        /// candidate until an Admin assigns an owner (typically on/after approval).
+        /// </summary>
+        public Guid? OwnerRecruiterId { get; set; }
+
+        /// <summary>Mandatory comment entered by the Admin when rejecting a PendingApproval candidate.</summary>
+        public string? RejectionComment { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+
+        public DateTime? ApprovedAtUtc { get; set; }
+
+        public Guid? RejectedByUserId { get; set; }
+
+        public DateTime? RejectedAtUtc { get; set; }
 
         /// <summary>Internal cost-to-company figure. Visible/editable to Admin only.</summary>
         public decimal? CostToCompany { get; set; }

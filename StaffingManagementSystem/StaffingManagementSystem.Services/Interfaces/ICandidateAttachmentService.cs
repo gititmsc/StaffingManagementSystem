@@ -23,6 +23,8 @@ namespace StaffingManagementSystem.Services.Interfaces
         /// <summary>
         /// Uploads a candidate's resume, replacing (deleting) any previous resume file/row so a
         /// candidate always has at most one active resume, kept separate from other attachments.
+        /// <paramref name="uploadedByUserId"/> is null for a resume submitted through the
+        /// anonymous public self-registration form.
         /// </summary>
         Task<ApiResponse<CandidateAttachmentDto>> UploadResumeAsync(
             Guid candidateId,
@@ -30,7 +32,7 @@ namespace StaffingManagementSystem.Services.Interfaces
             string contentType,
             long fileSizeBytes,
             Stream content,
-            Guid uploadedByUserId);
+            Guid? uploadedByUserId);
 
         /// <summary>Returns the file stream, content type and original file name for download, or null if not found.</summary>
         Task<CandidateAttachmentDownload?> GetForDownloadAsync(Guid attachmentId);
