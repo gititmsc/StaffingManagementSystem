@@ -9,16 +9,16 @@ import "./CandidateList.css";
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const DEFAULT_PAGE_SIZE = 25;
 
-const SORT_OPTIONS: ReadonlyArray<{ value: string; label: string; sortBy: string; sortDescending: boolean }> = [
-  { value: "added_desc", label: "Added (Newest first)", sortBy: "added", sortDescending: true },
-  { value: "added_asc", label: "Added (Oldest first)", sortBy: "added", sortDescending: false },
-  { value: "name_asc", label: "Name (A–Z)", sortBy: "name", sortDescending: false },
-  { value: "name_desc", label: "Name (Z–A)", sortBy: "name", sortDescending: true },
-  { value: "experience_desc", label: "Experience (High–Low)", sortBy: "experience", sortDescending: true },
-  { value: "experience_asc", label: "Experience (Low–High)", sortBy: "experience", sortDescending: false },
-  { value: "status_asc", label: "Status (A–Z)", sortBy: "status", sortDescending: false },
-];
-const DEFAULT_SORT = SORT_OPTIONS[0].value;
+/** Columns the backend can sort by, and which direction each starts in on first click. */
+const SORTABLE_COLUMNS: Record<string, { label: string; defaultDescending: boolean }> = {
+  name: { label: "Name", defaultDescending: false },
+  email: { label: "Email", defaultDescending: false },
+  experience: { label: "Experience", defaultDescending: true },
+  status: { label: "Status", defaultDescending: false },
+  added: { label: "Added", defaultDescending: true },
+};
+const DEFAULT_SORT_BY = "added";
+const DEFAULT_SORT_DESCENDING = true;
 
 function formatDate(value?: string | null): string {
   if (!value) return "—";
@@ -72,7 +72,8 @@ export default function CandidateList() {
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [sortOption, setSortOption] = useState(DEFAULT_SORT);
+  const [sortBy, setSortBy] = useState(DEFAULT_SORT_BY);
+  const [sortDescending, setSortDescending] = useState(DEFAULT_SORT_DESCENDING);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -96,13 +97,11 @@ export default function CandidateList() {
     setIsLoading(true);
     setLoadError(null);
 
-    const sort = SORT_OPTIONS.find((o) => o.value === sortOption) ?? SORT_OPTIONS[0];
-
     const response = await candidatesService.getAll({
       search: searchTerm || undefined,
       status: statusFilter || undefined,
-      sortBy: sort.sortBy,
-      sortDescending: sort.sortDescending,
+      sortBy,
+      sortDescending,
       page: targetPage,
       pageSize,
     });
@@ -123,7 +122,7 @@ export default function CandidateList() {
   useEffect(() => {
     loadCandidates(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, sortOption, pageSize, page]);
+  }, [searchTerm, statusFilter, sortBy, sortDescending, pageSize, page]);
 
   useEffect(() => {
     if (!pageMessage) return;
@@ -136,8 +135,13 @@ export default function CandidateList() {
     setPage(1);
   };
 
-  const handleSortChange = (value: string) => {
-    setSortOption(value);
+  const handleSortColumnClick = (column: string) => {
+    if (sortBy === column) {
+      setSortDescending((prev) => !prev);
+    } else {
+      setSortBy(column);
+      setSortDescending(SORTABLE_COLUMNS[column].defaultDescending);
+    }
     setPage(1);
   };
 
@@ -178,6 +182,23 @@ export default function CandidateList() {
 
   const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = totalCount === 0 ? 0 : Math.min(page * pageSize, totalCount);
+
+  const renderSortableHeader = (column: string) => {
+    const isActive = sortBy === column;
+    const icon = isActive ? (sortDescending ? "bi-arrow-down" : "bi-arrow-up") : "bi-arrow-down-up";
+
+    return (
+      <th
+        key={column}
+        className="candidates-sortable-th"
+        onClick={() => handleSortColumnClick(column)}
+        aria-sort={isActive ? (sortDescending ? "descending" : "ascending") : "none"}
+      >
+        {SORTABLE_COLUMNS[column].label}
+        <i className={`bi ${icon} candidates-sort-icon`} aria-hidden="true" />
+      </th>
+    );
+  };
 
   return (
     <div className="container py-4">
@@ -235,37 +256,6 @@ export default function CandidateList() {
             </option>
           ))}
         </select>
-
-        <select
-          className="form-select candidates-status-filter"
-          value={sortOption}
-          onChange={(event) => handleSortChange(event.target.value)}
-          aria-label="Sort by"
-        >
-          {SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              Sort: {option.label}
-            </option>
-          ))}
-        </select>
-
-        <div className="candidates-page-size">
-          <label htmlFor="candidatesPageSize">Show</label>
-          <select
-            id="candidatesPageSize"
-            className="form-select"
-            value={pageSize}
-            onChange={(event) => handlePageSizeChange(Number(event.target.value))}
-            aria-label="Records per page"
-          >
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
-          <span>per page</span>
-        </div>
       </div>
 
       <div className="candidates-table-card">
@@ -292,14 +282,14 @@ export default function CandidateList() {
             <table className="table candidates-table align-middle mb-0">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
+                  {renderSortableHeader("name")}
+                  {renderSortableHeader("email")}
                   <th>Location</th>
-                  <th>Experience</th>
+                  {renderSortableHeader("experience")}
                   <th>Skills</th>
-                  <th>Status</th>
+                  {renderSortableHeader("status")}
                   <th>Owner</th>
-                  <th>Added</th>
+                  {renderSortableHeader("added")}
                   <th className="text-end">Actions</th>
                 </tr>
               </thead>
@@ -377,31 +367,51 @@ export default function CandidateList() {
                 Showing {rangeStart}–{rangeEnd} of {totalCount}
               </span>
 
-              {totalPages > 1 && (
-                <div className="candidates-pagination__controls">
-                  <button
-                    type="button"
-                    className="candidates-page-btn"
-                    disabled={page <= 1}
-                    onClick={() => goToPage(page - 1)}
+              <div className="candidates-pagination__right">
+                <div className="candidates-page-size">
+                  <label htmlFor="candidatesPageSize">Show</label>
+                  <select
+                    id="candidatesPageSize"
+                    className="form-select"
+                    value={pageSize}
+                    onChange={(event) => handlePageSizeChange(Number(event.target.value))}
+                    aria-label="Records per page"
                   >
-                    <i className="bi bi-chevron-left" aria-hidden="true" />
-                    Previous
-                  </button>
-                  <span className="candidates-page-indicator">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    className="candidates-page-btn"
-                    disabled={page >= totalPages}
-                    onClick={() => goToPage(page + 1)}
-                  >
-                    Next
-                    <i className="bi bi-chevron-right" aria-hidden="true" />
-                  </button>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                  <span>per page</span>
                 </div>
-              )}
+
+                {totalPages > 1 && (
+                  <div className="candidates-pagination__controls">
+                    <button
+                      type="button"
+                      className="candidates-page-btn"
+                      disabled={page <= 1}
+                      onClick={() => goToPage(page - 1)}
+                    >
+                      <i className="bi bi-chevron-left" aria-hidden="true" />
+                      Previous
+                    </button>
+                    <span className="candidates-page-indicator">
+                      Page {page} of {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="candidates-page-btn"
+                      disabled={page >= totalPages}
+                      onClick={() => goToPage(page + 1)}
+                    >
+                      Next
+                      <i className="bi bi-chevron-right" aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

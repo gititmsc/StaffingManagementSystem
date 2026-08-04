@@ -108,6 +108,21 @@
   white-space: nowrap;
 }
 
+.candidates-sortable-th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.candidates-sortable-th:hover {
+  color: var(--itm-primary);
+}
+
+.candidates-sort-icon {
+  margin-left: 0.35rem;
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
 .candidates-table tbody td {
   padding: 0.85rem 1rem;
   font-size: 0.9rem;
@@ -337,11 +352,18 @@
   color: var(--itm-muted);
 }
 
+.candidates-pagination__right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-left: auto;
+}
+
 .candidates-pagination__controls {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  margin-left: auto;
 }
 
 .candidates-page-btn {
