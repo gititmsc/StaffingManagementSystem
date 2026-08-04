@@ -37,9 +37,17 @@ namespace StaffingManagementSystem.Services
             // Repository already orders by CreatedAtUtc descending; Select/Where preserve that order.
             IEnumerable<CandidateListItemDto> filtered = candidates.Select(c => MapToListItemDto(c, userNames));
 
-            // Self-registered candidates stay invisible to Recruiter/Viewer until an Admin
-            // approves (or permanently, if rejected). Admin always sees everything.
-            if (!IsAdmin(actorRole))
+            // Self-registered candidates stay out of the Candidate Master list until an Admin
+            // approves them (PendingApproval) or permanently if rejected (Rejected) — Rejected
+            // candidates are never shown here, not even to Admin, only via the dedicated
+            // Candidate Approvals screen. The one exception: Admin explicitly filtering by
+            // exactly that status (i.e. the Approvals screen's own request) is allowed through.
+            var requestedStatus = Norm(request.Status);
+            var isExplicitApprovalStatusRequest = IsAdmin(actorRole) &&
+                (string.Equals(requestedStatus, nameof(CandidateStatus.PendingApproval), StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(requestedStatus, nameof(CandidateStatus.Rejected), StringComparison.OrdinalIgnoreCase));
+
+            if (!isExplicitApprovalStatusRequest)
             {
                 filtered = filtered.Where(d =>
                     !string.Equals(d.Status, nameof(CandidateStatus.PendingApproval), StringComparison.OrdinalIgnoreCase) &&
@@ -56,7 +64,7 @@ namespace StaffingManagementSystem.Services
                     d.Skills.Any(s => s.ToLowerInvariant().Contains(term)));
             }
 
-            var status = Norm(request.Status);
+            var status = requestedStatus;
             if (status is not null)
             {
                 filtered = filtered.Where(d => string.Equals(d.Status, status, StringComparison.OrdinalIgnoreCase));
@@ -312,6 +320,16 @@ namespace StaffingManagementSystem.Services
                 approvedAtUtc: DateTime.UtcNow,
                 rejectedByUserId: null,
                 rejectedAtUtc: null);
+
+            try
+            {
+                await _emailService.SendCandidateApprovalEmailAsync(existing.Email, existing.FullName);
+            }
+            catch (Exception ex)
+            {
+                // Best-effort: a failed email must not undo or block the approval itself.
+                _logger.LogError(ex, "Failed to send approval email to candidate {CandidateEmail}", existing.Email);
+            }
 
             var refreshed = await _candidateRepository.GetByIdAsync(candidateId);
             var userNames = await GetUserNameLookupAsync();

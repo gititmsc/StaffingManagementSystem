@@ -133,6 +133,22 @@ namespace StaffingManagementSystem.Infrastructure.Email
             return SendAsync(toEmail, title, BuildEmailHtml(title, body), cancellationToken);
         }
 
+        public Task SendCandidateApprovalEmailAsync(
+            string toEmail,
+            string candidateName,
+            CancellationToken cancellationToken = default)
+        {
+            const string title = "Your application has been approved";
+
+            var body =
+                $"<p>Hi {WebUtility.HtmlEncode(candidateName)},</p>" +
+                "<p>Good news — your profile and resume have been reviewed and approved. You're now part of our " +
+                "talent database and visible to our recruitment team for current and future opportunities.</p>" +
+                "<p>We'll reach out if a suitable role comes up. Thank you for your interest in joining us.</p>";
+
+            return SendAsync(toEmail, title, BuildEmailHtml(title, body), cancellationToken);
+        }
+
         private static string EmailField(string label, string value) =>
             "<tr>" +
             $"<td style=\"padding:4px 12px 4px 0;color:#5b6b7f;white-space:nowrap;\"><strong>{WebUtility.HtmlEncode(label)}</strong></td>" +

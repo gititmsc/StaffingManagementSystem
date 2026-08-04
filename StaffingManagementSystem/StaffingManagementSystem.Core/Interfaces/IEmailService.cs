@@ -56,5 +56,11 @@ namespace StaffingManagementSystem.Core.Interfaces
             string candidateName,
             string rejectionComment,
             CancellationToken cancellationToken = default);
+
+        /// <summary>Sent to the candidate when an Admin approves their pending registration.</summary>
+        Task SendCandidateApprovalEmailAsync(
+            string toEmail,
+            string candidateName,
+            CancellationToken cancellationToken = default);
     }
 }

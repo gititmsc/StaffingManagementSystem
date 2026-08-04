@@ -263,7 +263,7 @@ export default function CandidateDetail() {
               </button>
             </>
           )}
-          {canEdit && (
+          {canEdit && candidate.status !== "PendingApproval" && candidate.status !== "Rejected" && (
             <button type="button" className="candidate-detail-edit-btn" onClick={() => navigate(`/candidates/${candidate.id}/edit`)}>
               <i className="bi bi-pencil-fill" aria-hidden="true" />
               Edit Candidate
