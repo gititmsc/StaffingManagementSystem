@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { ITMLogo } from "@/components/brand/ITMLogo";
+import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_LABELS, USER_MANAGEMENT_VIEW_ROLES } from "@/constants/roles";
 import { CANDIDATE_APPROVAL_ROLES, CANDIDATE_VIEW_ROLES, REPORT_VIEW_ROLES } from "@/constants/candidates";
@@ -13,6 +14,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const canViewCandidates = !!user && CANDIDATE_VIEW_ROLES.includes(user.role);
   const canViewReports = !!user && REPORT_VIEW_ROLES.includes(user.role);
   const canViewApprovals = !!user && CANDIDATE_APPROVAL_ROLES.includes(user.role);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   return (
     <div className="app-shell">
@@ -60,6 +62,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <div className="app-topbar__user-info">
             <span className="app-topbar__user-name">{user?.fullName}</span>
             <span className="app-topbar__user-role">{user ? (ROLE_LABELS[user.role] ?? user.role) : ""}</span>
+            <button
+              type="button"
+              className="app-topbar__change-password"
+              onClick={() => setIsChangePasswordOpen(true)}
+            >
+              Change Password
+            </button>
           </div>
           <button type="button" className="app-topbar__signout" onClick={logout}>
             <i className="bi bi-box-arrow-right" aria-hidden="true" />
@@ -69,6 +78,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="app-content">{children}</main>
+
+      {isChangePasswordOpen && <ChangePasswordModal onClose={() => setIsChangePasswordOpen(false)} />}
     </div>
   );
 }

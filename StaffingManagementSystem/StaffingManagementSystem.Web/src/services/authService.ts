@@ -133,6 +133,17 @@ function resetPassword(request: ResetPasswordRequest): Promise<ApiResponse<null>
   return callAuthEndpoint("/api/auth/reset-password", request);
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/** Changes the signed-in user's own password after verifying their current password. */
+function changePassword(request: ChangePasswordRequest): Promise<ApiResponse<null>> {
+  return callAuthEndpoint("/api/auth/change-password", request);
+}
+
 /**
  * Persists a login result and arms the silent-refresh timer so the session stays alive without
  * the user having to sign in again while they're active.
@@ -190,4 +201,5 @@ export const authService = {
   persistSession,
   forgotPassword,
   resetPassword,
+  changePassword,
 };

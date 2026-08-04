@@ -25,6 +25,8 @@ export interface CandidateListItem {
 export interface CandidateListParams {
   search?: string;
   status?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
   page: number;
   pageSize: number;
 }
@@ -207,6 +209,8 @@ async function getAll(params: CandidateListParams): Promise<ApiResponse<Candidat
       params: {
         search: params.search || undefined,
         status: params.status || undefined,
+        sortBy: params.sortBy || undefined,
+        sortDescending: params.sortDescending,
         page: params.page,
         pageSize: params.pageSize,
       },

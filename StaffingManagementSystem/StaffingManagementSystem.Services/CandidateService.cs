@@ -70,6 +70,8 @@ namespace StaffingManagementSystem.Services
                 filtered = filtered.Where(d => string.Equals(d.Status, status, StringComparison.OrdinalIgnoreCase));
             }
 
+            filtered = ApplySort(filtered, request.SortBy, request.SortDescending);
+
             var materialized = filtered.ToList();
             var totalCount = materialized.Count;
 
@@ -553,6 +555,22 @@ namespace StaffingManagementSystem.Services
         }
 
         private static string? Norm(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        /// <summary>Sorts the Candidate Master list. Unrecognized/absent SortBy falls back to CreatedAtUtc.</summary>
+        private static IEnumerable<CandidateListItemDto> ApplySort(
+            IEnumerable<CandidateListItemDto> items, string? sortBy, bool descending)
+        {
+            Func<CandidateListItemDto, object> keySelector = (Norm(sortBy)?.ToLowerInvariant()) switch
+            {
+                "name" => d => d.FullName,
+                "email" => d => d.Email,
+                "experience" => d => d.TotalExperienceYears,
+                "status" => d => d.Status,
+                _ => d => d.CreatedAtUtc,
+            };
+
+            return descending ? items.OrderByDescending(keySelector) : items.OrderBy(keySelector);
+        }
 
         private const string MaskedValue = "XXXX";
 

@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StaffingManagementSystem.Core.Common;
 using StaffingManagementSystem.Core.DTOs.Auth;
@@ -119,6 +121,29 @@ namespace StaffingManagementSystem.Api.Controllers
             }
 
             var result = await _authService.ResetPasswordAsync(request);
+
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Changes the signed-in user's own password after verifying their current password.</summary>
+        [HttpPost("change-password")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(ApiResponse<object>.FailureResponse("Validation failed.", errors));
+            }
+
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _authService.ChangePasswordAsync(userId, request);
 
             return result.Success ? Ok(result) : BadRequest(result);
         }

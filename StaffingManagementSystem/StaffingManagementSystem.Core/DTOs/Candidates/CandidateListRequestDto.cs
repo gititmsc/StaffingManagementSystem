@@ -9,6 +9,12 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
         /// <summary>One of: New, Available, InProcess, Placed, OnHold, Blacklisted.</summary>
         public string? Status { get; set; }
 
+        /// <summary>One of: Name, Email, Experience, Status, Added. Defaults to Added.</summary>
+        public string? SortBy { get; set; }
+
+        /// <summary>Defaults to true (newest/highest first) to match the pre-sorting default order.</summary>
+        public bool SortDescending { get; set; } = true;
+
         public int Page { get; set; } = 1;
 
         public int PageSize { get; set; } = 25;

@@ -35,5 +35,12 @@ namespace StaffingManagementSystem.Services.Interfaces
         /// signed-in session can no longer silently refresh and must sign in again.
         /// </summary>
         Task<ApiResponse<object>> ResetPasswordAsync(ResetPasswordRequestDto request);
+
+        /// <summary>
+        /// Changes a signed-in user's own password after verifying their current password.
+        /// All of that user's refresh tokens are revoked, matching <see cref="ResetPasswordAsync"/> —
+        /// other signed-in sessions can no longer silently refresh and must sign in again.
+        /// </summary>
+        Task<ApiResponse<object>> ChangePasswordAsync(Guid userId, ChangePasswordRequestDto request);
     }
 }

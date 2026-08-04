@@ -87,6 +87,21 @@
   color: var(--itm-muted);
 }
 
+.app-topbar__change-password {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--itm-accent);
+  cursor: pointer;
+}
+
+.app-topbar__change-password:hover {
+  text-decoration: underline;
+}
+
 .app-topbar__signout {
   display: inline-flex;
   align-items: center;

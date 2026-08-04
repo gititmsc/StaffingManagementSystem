@@ -9,6 +9,17 @@ import "./CandidateList.css";
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const DEFAULT_PAGE_SIZE = 25;
 
+const SORT_OPTIONS: ReadonlyArray<{ value: string; label: string; sortBy: string; sortDescending: boolean }> = [
+  { value: "added_desc", label: "Added (Newest first)", sortBy: "added", sortDescending: true },
+  { value: "added_asc", label: "Added (Oldest first)", sortBy: "added", sortDescending: false },
+  { value: "name_asc", label: "Name (A–Z)", sortBy: "name", sortDescending: false },
+  { value: "name_desc", label: "Name (Z–A)", sortBy: "name", sortDescending: true },
+  { value: "experience_desc", label: "Experience (High–Low)", sortBy: "experience", sortDescending: true },
+  { value: "experience_asc", label: "Experience (Low–High)", sortBy: "experience", sortDescending: false },
+  { value: "status_asc", label: "Status (A–Z)", sortBy: "status", sortDescending: false },
+];
+const DEFAULT_SORT = SORT_OPTIONS[0].value;
+
 function formatDate(value?: string | null): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -61,6 +72,7 @@ export default function CandidateList() {
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [sortOption, setSortOption] = useState(DEFAULT_SORT);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -84,9 +96,13 @@ export default function CandidateList() {
     setIsLoading(true);
     setLoadError(null);
 
+    const sort = SORT_OPTIONS.find((o) => o.value === sortOption) ?? SORT_OPTIONS[0];
+
     const response = await candidatesService.getAll({
       search: searchTerm || undefined,
       status: statusFilter || undefined,
+      sortBy: sort.sortBy,
+      sortDescending: sort.sortDescending,
       page: targetPage,
       pageSize,
     });
@@ -107,7 +123,7 @@ export default function CandidateList() {
   useEffect(() => {
     loadCandidates(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, pageSize, page]);
+  }, [searchTerm, statusFilter, sortOption, pageSize, page]);
 
   useEffect(() => {
     if (!pageMessage) return;
@@ -117,6 +133,11 @@ export default function CandidateList() {
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortOption(value);
     setPage(1);
   };
 
@@ -211,6 +232,19 @@ export default function CandidateList() {
           {CANDIDATE_STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="form-select candidates-status-filter"
+          value={sortOption}
+          onChange={(event) => handleSortChange(event.target.value)}
+          aria-label="Sort by"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              Sort: {option.label}
             </option>
           ))}
         </select>

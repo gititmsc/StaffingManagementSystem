@@ -208,6 +208,38 @@ namespace StaffingManagementSystem.Services
                 "Your password has been reset. You can now sign in with your new password.");
         }
 
+        public async Task<ApiResponse<object>> ChangePasswordAsync(Guid userId, ChangePasswordRequestDto request)
+        {
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                return ApiResponse<object>.FailureResponse(
+                    "Passwords do not match.",
+                    ["Passwords do not match."]);
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user is null || !user.IsActive)
+            {
+                return ApiResponse<object>.FailureResponse("Account not found.", ["Account not found."]);
+            }
+
+            if (!_passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+            {
+                return ApiResponse<object>.FailureResponse(
+                    "Current password is incorrect.",
+                    ["Current password is incorrect."]);
+            }
+
+            var newPasswordHash = _passwordHasher.Hash(request.NewPassword);
+            await _userRepository.UpdatePasswordHashAsync(userId, newPasswordHash);
+
+            // The password just changed — every other signed-in session (and its ability to
+            // silently refresh) must be cut off, not just this one.
+            await _refreshTokenRepository.RevokeAllForUserAsync(userId, DateTime.UtcNow);
+
+            return ApiResponse<object>.SuccessResponse(new { }, "Your password has been changed.");
+        }
+
         private async Task<(string RawToken, Guid TokenId)> IssueRefreshTokenAsync(Guid userId)
         {
             var rawToken = ResetTokenHelper.GenerateSecureToken();
