@@ -9,6 +9,9 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
         /// <summary>One of: New, Available, InProcess, Placed, OnHold, Blacklisted.</summary>
         public string? Status { get; set; }
 
+        /// <summary>When set, only candidates owned by this recruiter are returned.</summary>
+        public Guid? OwnerRecruiterId { get; set; }
+
         /// <summary>One of: Name, Email, Experience, Status, Added. Defaults to Added.</summary>
         public string? SortBy { get; set; }
 

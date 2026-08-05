@@ -70,6 +70,11 @@ namespace StaffingManagementSystem.Services
                 filtered = filtered.Where(d => string.Equals(d.Status, status, StringComparison.OrdinalIgnoreCase));
             }
 
+            if (request.OwnerRecruiterId.HasValue)
+            {
+                filtered = filtered.Where(d => d.OwnerRecruiterId == request.OwnerRecruiterId.Value);
+            }
+
             filtered = ApplySort(filtered, request.SortBy, request.SortDescending);
 
             var materialized = filtered.ToList();

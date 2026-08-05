@@ -16,6 +16,7 @@ namespace StaffingManagementSystem.Services.Extensions
             services.AddScoped<ICandidateAttachmentService, CandidateAttachmentService>();
             services.AddScoped<ICandidateSearchService, CandidateSearchService>();
             services.AddScoped<ICandidateRegistrationService, CandidateRegistrationService>();
+            services.AddScoped<IDashboardService, DashboardService>();
 
             return services;
         }

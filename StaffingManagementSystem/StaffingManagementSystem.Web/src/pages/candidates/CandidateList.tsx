@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 import { CANDIDATE_EDIT_ROLES, CANDIDATE_STATUS_LABELS, CANDIDATE_STATUS_OPTIONS } from "@/constants/candidates";
@@ -63,6 +63,7 @@ function statusDisplayLabel(status: string): string {
 export default function CandidateList() {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canEdit = !!currentUser && CANDIDATE_EDIT_ROLES.includes(currentUser.role);
 
   const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
@@ -72,6 +73,7 @@ export default function CandidateList() {
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState(() => searchParams.get("owner") ?? "");
   const [sortBy, setSortBy] = useState(DEFAULT_SORT_BY);
   const [sortDescending, setSortDescending] = useState(DEFAULT_SORT_DESCENDING);
 
@@ -100,6 +102,7 @@ export default function CandidateList() {
     const response = await candidatesService.getAll({
       search: searchTerm || undefined,
       status: statusFilter || undefined,
+      ownerRecruiterId: ownerFilter || undefined,
       sortBy,
       sortDescending,
       page: targetPage,
@@ -122,7 +125,7 @@ export default function CandidateList() {
   useEffect(() => {
     loadCandidates(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, sortBy, sortDescending, pageSize, page]);
+  }, [searchTerm, statusFilter, ownerFilter, sortBy, sortDescending, pageSize, page]);
 
   useEffect(() => {
     if (!pageMessage) return;
@@ -133,6 +136,14 @@ export default function CandidateList() {
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
     setPage(1);
+  };
+
+  const clearOwnerFilter = () => {
+    setOwnerFilter("");
+    setPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.delete("owner");
+    setSearchParams(next, { replace: true });
   };
 
   const handleSortColumnClick = (column: string) => {
@@ -216,6 +227,16 @@ export default function CandidateList() {
           </button>
         )}
       </div>
+
+      {ownerFilter && (
+        <div className="candidates-alert candidates-alert--info" role="status">
+          <i className="bi bi-funnel-fill" aria-hidden="true" />
+          <span>Showing only your candidates.</span>
+          <button type="button" className="candidates-alert__clear" onClick={clearOwnerFilter}>
+            Clear filter
+          </button>
+        </div>
+      )}
 
       {pageMessage && (
         <div className="candidates-alert candidates-alert--success" role="status">

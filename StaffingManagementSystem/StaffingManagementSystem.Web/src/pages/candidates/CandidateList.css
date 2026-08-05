@@ -298,6 +298,22 @@
   background: var(--itm-success);
 }
 
+.candidates-alert--info {
+  color: var(--itm-primary);
+  background: rgba(var(--itm-primary-rgb), 0.1);
+}
+
+.candidates-alert__clear {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .candidates-btn {
   display: inline-flex;
   align-items: center;
