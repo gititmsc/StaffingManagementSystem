@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
 import ReCAPTCHA from "react-google-recaptcha";
 import { ITMLogo } from "@/components/brand/ITMLogo";
 import { EMPLOYMENT_TYPE_OPTIONS } from "@/constants/candidates";
@@ -268,16 +267,22 @@ export default function CandidateRegistration() {
 
                 <div className="candidate-registration-field">
                   <label htmlFor="currentLocation">Current Location</label>
-                  <input id="currentLocation" className="form-control" {...register("currentLocation")} />
+                  <input
+                    id="currentLocation"
+                    className={`form-control ${errors.currentLocation ? "is-invalid" : ""}`}
+                    {...register("currentLocation", { required: "Current location is required." })}
+                  />
+                  {errors.currentLocation && <div className="invalid-feedback">{errors.currentLocation.message}</div>}
                 </div>
 
                 <div className="candidate-registration-field">
-                  <label htmlFor="linkedInUrl">LinkedIn Profile (optional)</label>
+                  <label htmlFor="linkedInUrl">LinkedIn Profile</label>
                   <input
                     id="linkedInUrl"
                     className={`form-control ${errors.linkedInUrl ? "is-invalid" : ""}`}
                     placeholder="https://www.linkedin.com/in/your-profile"
                     {...register("linkedInUrl", {
+                      required: "LinkedIn profile URL is required.",
                       pattern: { value: /^https?:\/\/.+/i, message: "Enter a valid URL." },
                     })}
                   />
@@ -326,87 +331,122 @@ export default function CandidateRegistration() {
                   )}
                   {experienceError && <div className="invalid-feedback d-block">{experienceError}</div>}
 
-                  {experienceArray.fields.map((field, index) => (
-                    <div className="candidate-form-card" key={field.id}>
-                      <div className="row g-2">
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Company name"
-                            {...register(`experience.${index}.companyName` as const)}
-                          />
-                        </div>
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Job title"
-                            {...register(`experience.${index}.jobTitle` as const)}
-                          />
-                        </div>
-                        <div className="col-6 col-md-3">
-                          <select className="form-select" {...register(`experience.${index}.employmentType` as const)}>
-                            <option value="">Type</option>
-                            {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-6 col-md-3">
-                          <input
-                            type="date"
-                            className="form-control"
-                            {...register(`experience.${index}.startDate` as const)}
-                          />
-                        </div>
-                        <div className="col-6 col-md-3">
-                          <input
-                            type="date"
-                            className="form-control"
-                            disabled={!!watch(`experience.${index}.isCurrent`)}
-                            {...register(`experience.${index}.endDate` as const)}
-                          />
-                        </div>
-                        <div className="col-6 col-md-3 d-flex align-items-center">
-                          <div className="form-check">
+                  {experienceArray.fields.map((field, index) => {
+                    const rowErrors = errors.experience?.[index];
+                    const isCurrent = !!watch(`experience.${index}.isCurrent`);
+
+                    return (
+                      <div className="candidate-form-card" key={field.id}>
+                        <div className="row g-2">
+                          <div className="col-12 col-md-6">
                             <input
-                              type="checkbox"
-                              className="form-check-input"
-                              id={`experience-current-${field.id}`}
-                              {...register(`experience.${index}.isCurrent` as const)}
+                              className={`form-control ${rowErrors?.companyName ? "is-invalid" : ""}`}
+                              placeholder="Company name"
+                              {...register(`experience.${index}.companyName` as const, {
+                                required: "Company name is required.",
+                              })}
                             />
-                            <label className="form-check-label" htmlFor={`experience-current-${field.id}`}>
-                              Current role
-                            </label>
+                            {rowErrors?.companyName && (
+                              <div className="invalid-feedback">{rowErrors.companyName.message}</div>
+                            )}
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <input
+                              className={`form-control ${rowErrors?.jobTitle ? "is-invalid" : ""}`}
+                              placeholder="Job title"
+                              {...register(`experience.${index}.jobTitle` as const, {
+                                required: "Job title is required.",
+                              })}
+                            />
+                            {rowErrors?.jobTitle && <div className="invalid-feedback">{rowErrors.jobTitle.message}</div>}
+                          </div>
+                          <div className="col-6 col-md-3">
+                            <select
+                              className={`form-select ${rowErrors?.employmentType ? "is-invalid" : ""}`}
+                              {...register(`experience.${index}.employmentType` as const, {
+                                required: "Type is required.",
+                              })}
+                            >
+                              <option value="">Type</option>
+                              {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            {rowErrors?.employmentType && (
+                              <div className="invalid-feedback">{rowErrors.employmentType.message}</div>
+                            )}
+                          </div>
+                          <div className="col-6 col-md-3">
+                            <input
+                              type="date"
+                              className={`form-control ${rowErrors?.startDate ? "is-invalid" : ""}`}
+                              {...register(`experience.${index}.startDate` as const, {
+                                required: "Start date is required.",
+                              })}
+                            />
+                            {rowErrors?.startDate && <div className="invalid-feedback">{rowErrors.startDate.message}</div>}
+                          </div>
+                          <div className="col-6 col-md-3">
+                            <input
+                              type="date"
+                              className={`form-control ${rowErrors?.endDate ? "is-invalid" : ""}`}
+                              disabled={isCurrent}
+                              {...register(`experience.${index}.endDate` as const, {
+                                validate: (value) => isCurrent || !!value || "End date is required.",
+                              })}
+                            />
+                            {rowErrors?.endDate && <div className="invalid-feedback">{rowErrors.endDate.message}</div>}
+                          </div>
+                          <div className="col-6 col-md-3 d-flex align-items-center">
+                            <div className="form-check">
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`experience-current-${field.id}`}
+                                {...register(`experience.${index}.isCurrent` as const)}
+                              />
+                              <label className="form-check-label" htmlFor={`experience-current-${field.id}`}>
+                                Current role
+                              </label>
+                            </div>
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <input
+                              className={`form-control ${rowErrors?.location ? "is-invalid" : ""}`}
+                              placeholder="Location"
+                              {...register(`experience.${index}.location` as const, {
+                                required: "Location is required.",
+                              })}
+                            />
+                            {rowErrors?.location && <div className="invalid-feedback">{rowErrors.location.message}</div>}
+                          </div>
+                          <div className="col-12">
+                            <textarea
+                              className={`form-control ${rowErrors?.description ? "is-invalid" : ""}`}
+                              rows={2}
+                              placeholder="Description"
+                              {...register(`experience.${index}.description` as const, {
+                                required: "Description is required.",
+                              })}
+                            />
+                            {rowErrors?.description && (
+                              <div className="invalid-feedback">{rowErrors.description.message}</div>
+                            )}
                           </div>
                         </div>
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Location (optional)"
-                            {...register(`experience.${index}.location` as const)}
-                          />
-                        </div>
-                        <div className="col-12">
-                          <textarea
-                            className="form-control"
-                            rows={2}
-                            placeholder="Description (optional)"
-                            {...register(`experience.${index}.description` as const)}
-                          />
-                        </div>
+                        <button
+                          type="button"
+                          className="candidate-form-remove-btn candidate-form-remove-btn--card"
+                          onClick={() => experienceArray.remove(index)}
+                          aria-label="Remove experience"
+                        >
+                          <i className="bi bi-trash-fill" aria-hidden="true" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className="candidate-form-remove-btn candidate-form-remove-btn--card"
-                        onClick={() => experienceArray.remove(index)}
-                        aria-label="Remove experience"
-                      >
-                        <i className="bi bi-trash-fill" aria-hidden="true" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </section>
 
                 <section className="candidate-form-section">
@@ -438,77 +478,105 @@ export default function CandidateRegistration() {
                   )}
                   {educationError && <div className="invalid-feedback d-block">{educationError}</div>}
 
-                  {educationArray.fields.map((field, index) => (
-                    <div className="candidate-form-card" key={field.id}>
-                      <div className="row g-2">
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Degree"
-                            {...register(`education.${index}.degree` as const)}
-                          />
-                        </div>
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Institution"
-                            {...register(`education.${index}.institution` as const)}
-                          />
-                        </div>
-                        <div className="col-12 col-md-4">
-                          <input
-                            className="form-control"
-                            placeholder="Field of study (optional)"
-                            {...register(`education.${index}.fieldOfStudy` as const)}
-                          />
-                        </div>
-                        <div className="col-6 col-md-2">
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder="Start year"
-                            {...register(`education.${index}.startYear` as const)}
-                          />
-                        </div>
-                        <div className="col-6 col-md-2">
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder="End year"
-                            {...register(`education.${index}.endYear` as const)}
-                          />
-                        </div>
-                        <div className="col-6 col-md-2">
-                          <input
-                            className="form-control"
-                            placeholder="Grade (optional)"
-                            {...register(`education.${index}.grade` as const)}
-                          />
-                        </div>
-                        <div className="col-6 col-md-2 d-flex align-items-center">
-                          <div className="form-check">
+                  {educationArray.fields.map((field, index) => {
+                    const rowErrors = errors.education?.[index];
+                    const isExpected = !!watch(`education.${index}.isExpected`);
+
+                    return (
+                      <div className="candidate-form-card" key={field.id}>
+                        <div className="row g-2">
+                          <div className="col-12 col-md-6">
                             <input
-                              type="checkbox"
-                              className="form-check-input"
-                              id={`education-expected-${field.id}`}
-                              {...register(`education.${index}.isExpected` as const)}
+                              className={`form-control ${rowErrors?.degree ? "is-invalid" : ""}`}
+                              placeholder="Degree"
+                              {...register(`education.${index}.degree` as const, {
+                                required: "Degree is required.",
+                              })}
                             />
-                            <label className="form-check-label" htmlFor={`education-expected-${field.id}`}>
-                              Expected
-                            </label>
+                            {rowErrors?.degree && <div className="invalid-feedback">{rowErrors.degree.message}</div>}
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <input
+                              className={`form-control ${rowErrors?.institution ? "is-invalid" : ""}`}
+                              placeholder="Institution"
+                              {...register(`education.${index}.institution` as const, {
+                                required: "Institution is required.",
+                              })}
+                            />
+                            {rowErrors?.institution && (
+                              <div className="invalid-feedback">{rowErrors.institution.message}</div>
+                            )}
+                          </div>
+                          <div className="col-12 col-md-4">
+                            <input
+                              className={`form-control ${rowErrors?.fieldOfStudy ? "is-invalid" : ""}`}
+                              placeholder="Field of study"
+                              {...register(`education.${index}.fieldOfStudy` as const, {
+                                required: "Field of study is required.",
+                              })}
+                            />
+                            {rowErrors?.fieldOfStudy && (
+                              <div className="invalid-feedback">{rowErrors.fieldOfStudy.message}</div>
+                            )}
+                          </div>
+                          <div className="col-6 col-md-2">
+                            <input
+                              type="number"
+                              className={`form-control ${rowErrors?.startYear ? "is-invalid" : ""}`}
+                              placeholder="Start year"
+                              {...register(`education.${index}.startYear` as const, {
+                                required: "Required.",
+                              })}
+                            />
+                            {rowErrors?.startYear && <div className="invalid-feedback">{rowErrors.startYear.message}</div>}
+                          </div>
+                          <div className="col-6 col-md-2">
+                            <input
+                              type="number"
+                              className={`form-control ${rowErrors?.endYear ? "is-invalid" : ""}`}
+                              placeholder="End year"
+                              disabled={isExpected}
+                              {...register(`education.${index}.endYear` as const, {
+                                validate: (value) => isExpected || !!value || "Required.",
+                              })}
+                            />
+                            {rowErrors?.endYear && <div className="invalid-feedback">{rowErrors.endYear.message}</div>}
+                          </div>
+                          <div className="col-6 col-md-2">
+                            <input
+                              className={`form-control ${rowErrors?.grade ? "is-invalid" : ""}`}
+                              placeholder="Grade"
+                              {...register(`education.${index}.grade` as const, {
+                                required: "Required.",
+                              })}
+                            />
+                            {rowErrors?.grade && <div className="invalid-feedback">{rowErrors.grade.message}</div>}
+                          </div>
+                          <div className="col-6 col-md-2 d-flex align-items-center">
+                            <div className="form-check">
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={`education-expected-${field.id}`}
+                                {...register(`education.${index}.isExpected` as const)}
+                              />
+                              <label className="form-check-label" htmlFor={`education-expected-${field.id}`}>
+                                Expected
+                              </label>
+                            </div>
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className="candidate-form-remove-btn candidate-form-remove-btn--card"
+                          onClick={() => educationArray.remove(index)}
+                          aria-label="Remove education"
+                        >
+                          <i className="bi bi-trash-fill" aria-hidden="true" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className="candidate-form-remove-btn candidate-form-remove-btn--card"
-                        onClick={() => educationArray.remove(index)}
-                        aria-label="Remove education"
-                      >
-                        <i className="bi bi-trash-fill" aria-hidden="true" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </section>
 
                 <section className="candidate-form-section">
@@ -538,56 +606,81 @@ export default function CandidateRegistration() {
                   )}
                   {projectsError && <div className="invalid-feedback d-block">{projectsError}</div>}
 
-                  {projectsArray.fields.map((field, index) => (
-                    <div className="candidate-form-card" key={field.id}>
-                      <div className="row g-2">
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Project name"
-                            {...register(`projects.${index}.projectName` as const)}
-                          />
+                  {projectsArray.fields.map((field, index) => {
+                    const rowErrors = errors.projects?.[index];
+
+                    return (
+                      <div className="candidate-form-card" key={field.id}>
+                        <div className="row g-2">
+                          <div className="col-12 col-md-6">
+                            <input
+                              className={`form-control ${rowErrors?.projectName ? "is-invalid" : ""}`}
+                              placeholder="Project name"
+                              {...register(`projects.${index}.projectName` as const, {
+                                required: "Project name is required.",
+                              })}
+                            />
+                            {rowErrors?.projectName && (
+                              <div className="invalid-feedback">{rowErrors.projectName.message}</div>
+                            )}
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <input
+                              className={`form-control ${rowErrors?.role ? "is-invalid" : ""}`}
+                              placeholder="Role"
+                              {...register(`projects.${index}.role` as const, { required: "Role is required." })}
+                            />
+                            {rowErrors?.role && <div className="invalid-feedback">{rowErrors.role.message}</div>}
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <input
+                              className={`form-control ${rowErrors?.durationText ? "is-invalid" : ""}`}
+                              placeholder="Duration (e.g. Jan 2022 - Jun 2022)"
+                              {...register(`projects.${index}.durationText` as const, {
+                                required: "Duration is required.",
+                              })}
+                            />
+                            {rowErrors?.durationText && (
+                              <div className="invalid-feedback">{rowErrors.durationText.message}</div>
+                            )}
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <input
+                              className={`form-control ${rowErrors?.technologiesUsed ? "is-invalid" : ""}`}
+                              placeholder="Technologies used"
+                              {...register(`projects.${index}.technologiesUsed` as const, {
+                                required: "Technologies used is required.",
+                              })}
+                            />
+                            {rowErrors?.technologiesUsed && (
+                              <div className="invalid-feedback">{rowErrors.technologiesUsed.message}</div>
+                            )}
+                          </div>
+                          <div className="col-12">
+                            <textarea
+                              className={`form-control ${rowErrors?.description ? "is-invalid" : ""}`}
+                              rows={2}
+                              placeholder="Description"
+                              {...register(`projects.${index}.description` as const, {
+                                required: "Description is required.",
+                              })}
+                            />
+                            {rowErrors?.description && (
+                              <div className="invalid-feedback">{rowErrors.description.message}</div>
+                            )}
+                          </div>
                         </div>
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Role (optional)"
-                            {...register(`projects.${index}.role` as const)}
-                          />
-                        </div>
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Duration (optional, e.g. Jan 2022 - Jun 2022)"
-                            {...register(`projects.${index}.durationText` as const)}
-                          />
-                        </div>
-                        <div className="col-12 col-md-6">
-                          <input
-                            className="form-control"
-                            placeholder="Technologies used (optional)"
-                            {...register(`projects.${index}.technologiesUsed` as const)}
-                          />
-                        </div>
-                        <div className="col-12">
-                          <textarea
-                            className="form-control"
-                            rows={2}
-                            placeholder="Description (optional)"
-                            {...register(`projects.${index}.description` as const)}
-                          />
-                        </div>
+                        <button
+                          type="button"
+                          className="candidate-form-remove-btn candidate-form-remove-btn--card"
+                          onClick={() => projectsArray.remove(index)}
+                          aria-label="Remove project"
+                        >
+                          <i className="bi bi-trash-fill" aria-hidden="true" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className="candidate-form-remove-btn candidate-form-remove-btn--card"
-                        onClick={() => projectsArray.remove(index)}
-                        aria-label="Remove project"
-                      >
-                        <i className="bi bi-trash-fill" aria-hidden="true" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </section>
 
                 <div className="candidate-registration-field">
@@ -618,10 +711,6 @@ export default function CandidateRegistration() {
                   {isSubmitting ? "Submitting..." : "Submit Application"}
                 </button>
               </form>
-
-              <p className="candidate-registration-signin-link">
-                Already have an account? <Link to="/login">Sign in</Link>
-              </p>
             </>
           )}
         </div>

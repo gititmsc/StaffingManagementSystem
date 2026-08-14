@@ -166,6 +166,24 @@ export default function CandidateList() {
     setPage(target);
   };
 
+  const handleDownloadResume = async (row: CandidateListItem) => {
+    setActionError(null);
+
+    const response = await candidatesService.getAttachments(row.id);
+    if (!response.success || !response.data) {
+      setActionError(response.message || "Unable to load attachments.");
+      return;
+    }
+
+    const resume = response.data.find((a) => a.type === "Resume");
+    if (!resume) {
+      setActionError(`${row.fullName} has no resume on file.`);
+      return;
+    }
+
+    await candidatesService.downloadAttachment(row.id, resume.id, resume.fileName);
+  };
+
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     setActionError(null);
@@ -354,6 +372,17 @@ export default function CandidateList() {
                         >
                           <i className="bi bi-eye-fill" aria-hidden="true" />
                         </button>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            className="candidates-icon-btn"
+                            onClick={() => handleDownloadResume(row)}
+                            aria-label={`Download resume for ${row.fullName}`}
+                            title="Download Resume"
+                          >
+                            <i className="bi bi-download" aria-hidden="true" />
+                          </button>
+                        )}
                         {canEdit && (
                           <>
                             <button
