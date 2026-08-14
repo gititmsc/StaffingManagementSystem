@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Modal } from "@/components/ui/Modal";
 import { candidatesService, type CandidateListItem } from "@/services/candidatesService";
 import "@/pages/candidates/CandidateList.css";
@@ -19,8 +19,9 @@ function formatDate(value?: string | null): string {
 
 export default function CandidateApprovals() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [statusTab, setStatusTab] = useState("PendingApproval");
+  const [statusTab, setStatusTab] = useState(() => searchParams.get("tab") ?? "PendingApproval");
   const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -52,6 +53,14 @@ export default function CandidateApprovals() {
     loadCandidates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusTab]);
+
+  const handleTabChange = (value: string) => {
+    setStatusTab(value);
+    setSearchParams({ tab: value }, { replace: true });
+  };
+
+  /** Passed as navigation state so the candidate detail page's "Back" button returns here, on the same tab. */
+  const returnToState = { returnTo: `/candidate-approvals?tab=${statusTab}`, returnLabel: "Back to Candidate Approvals" };
 
   useEffect(() => {
     if (!pageMessage) return;
@@ -146,7 +155,7 @@ export default function CandidateApprovals() {
             key={tab.value}
             type="button"
             className={`candidate-approvals-tab ${statusTab === tab.value ? "is-active" : ""}`}
-            onClick={() => setStatusTab(tab.value)}
+            onClick={() => handleTabChange(tab.value)}
           >
             {tab.label}
           </button>
@@ -189,7 +198,7 @@ export default function CandidateApprovals() {
               {candidates.map((row) => (
                 <tr key={row.id}>
                   <td>
-                    <button type="button" className="candidates-name-link" onClick={() => navigate(`/candidates/${row.id}`)}>
+                    <button type="button" className="candidates-name-link" onClick={() => navigate(`/candidates/${row.id}`, { state: returnToState })}>
                       {row.fullName}
                     </button>
                   </td>
@@ -212,7 +221,7 @@ export default function CandidateApprovals() {
                       <button
                         type="button"
                         className="candidates-icon-btn"
-                        onClick={() => navigate(`/candidates/${row.id}`)}
+                        onClick={() => navigate(`/candidates/${row.id}`, { state: returnToState })}
                         aria-label={`View ${row.fullName}`}
                         title="View Profile"
                       >

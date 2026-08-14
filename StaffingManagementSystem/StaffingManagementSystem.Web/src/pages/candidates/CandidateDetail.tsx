@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 import { CANDIDATE_EDIT_ROLES, CANDIDATE_STATUS_LABELS, GENDER_LABELS } from "@/constants/candidates";
@@ -21,8 +21,13 @@ function formatFileSize(bytes: number): string {
 export default function CandidateDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser } = useAuth();
   const canEdit = !!currentUser && CANDIDATE_EDIT_ROLES.includes(currentUser.role);
+
+  const navState = location.state as { returnTo?: string; returnLabel?: string } | null;
+  const backTo = navState?.returnTo ?? "/candidates";
+  const backLabel = navState?.returnLabel ?? "Back to Candidates";
 
   const [candidate, setCandidate] = useState<CandidateDetailData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -234,9 +239,9 @@ export default function CandidateDetail() {
     <div className="container py-4">
       <div className="candidate-detail-header">
         <div>
-          <button type="button" className="candidate-detail-back" onClick={() => navigate("/candidates")}>
+          <button type="button" className="candidate-detail-back" onClick={() => navigate(backTo)}>
             <i className="bi bi-arrow-left" aria-hidden="true" />
-            Back to Candidates
+            {backLabel}
           </button>
           <h1 className="h4 mb-1 mt-2" style={{ color: "var(--itm-primary)" }}>
             {candidate.fullName}
