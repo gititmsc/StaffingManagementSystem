@@ -225,6 +225,7 @@ namespace StaffingManagementSystem.Services
                 Email = candidate.Email,
                 Phone = candidate.Phone,
                 CurrentLocation = candidate.CurrentLocation,
+                LinkedInUrl = candidate.LinkedInUrl,
                 Status = candidate.Status.ToString(),
                 TotalExperienceYears = candidate.TotalExperienceYears,
                 CurrentCompany = currentExperience?.CompanyName,

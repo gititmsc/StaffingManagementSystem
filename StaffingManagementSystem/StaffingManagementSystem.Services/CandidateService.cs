@@ -448,6 +448,7 @@ namespace StaffingManagementSystem.Services
                 Email = candidate.Email,
                 Phone = candidate.Phone,
                 CurrentLocation = candidate.CurrentLocation,
+                LinkedInUrl = candidate.LinkedInUrl,
                 Status = candidate.Status.ToString(),
                 TotalExperienceYears = candidate.TotalExperienceYears,
                 CurrentCompany = currentExperience?.CompanyName,
@@ -595,6 +596,7 @@ namespace StaffingManagementSystem.Services
                 dto.FullName = MaskedValue;
                 dto.Email = MaskedValue;
                 dto.Phone = dto.Phone is null ? null : MaskedValue;
+                dto.LinkedInUrl = dto.LinkedInUrl is null ? null : MaskedValue;
             }
         }
 

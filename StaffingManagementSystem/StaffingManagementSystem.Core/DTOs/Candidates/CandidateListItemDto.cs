@@ -15,6 +15,8 @@ namespace StaffingManagementSystem.Core.DTOs.Candidates
 
         public string? CurrentLocation { get; set; }
 
+        public string? LinkedInUrl { get; set; }
+
         public string Status { get; set; } = string.Empty;
 
         public decimal TotalExperienceYears { get; set; }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Modal } from "@/components/ui/Modal";
 import { candidatesService, type CandidateListItem } from "@/services/candidatesService";
 import "@/pages/candidates/CandidateList.css";
@@ -11,14 +11,14 @@ const TABS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "Rejected", label: "Rejected" },
 ];
 
-function formatDate(value?: string | null): string {
+function formatDateTime(value?: string | null): string {
   if (!value) return "—";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
+  if (Number.isNaN(date.getTime())) return "—";
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 export default function CandidateApprovals() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [statusTab, setStatusTab] = useState(() => searchParams.get("tab") ?? "PendingApproval");
@@ -125,7 +125,7 @@ export default function CandidateApprovals() {
   };
 
   return (
-    <div className="container py-4">
+    <div className="container-fluid py-4 candidate-approvals-page">
       <div className="candidates-header">
         <div>
           <h1 className="h4 mb-1" style={{ color: "var(--itm-primary)" }}>
@@ -188,6 +188,8 @@ export default function CandidateApprovals() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th>LinkedIn</th>
+                <th>Current Location</th>
                 <th>Experience</th>
                 <th>Skills</th>
                 <th>Registered</th>
@@ -198,12 +200,22 @@ export default function CandidateApprovals() {
               {candidates.map((row) => (
                 <tr key={row.id}>
                   <td>
-                    <button type="button" className="candidates-name-link" onClick={() => navigate(`/candidates/${row.id}`, { state: returnToState })}>
+                    <Link to={`/candidates/${row.id}`} state={returnToState} className="candidates-name-link">
                       {row.fullName}
-                    </button>
+                    </Link>
                   </td>
                   <td>{row.email}</td>
                   <td>{row.phone || "—"}</td>
+                  <td>
+                    {row.linkedInUrl ? (
+                      <a href={row.linkedInUrl} target="_blank" rel="noreferrer">
+                        View <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>{row.currentLocation || "—"}</td>
                   <td>{row.totalExperienceYears} yrs</td>
                   <td>
                     <div className="candidates-skill-chips">
@@ -215,18 +227,18 @@ export default function CandidateApprovals() {
                       {row.skills.length > 3 && <span className="candidates-skill-chip">+{row.skills.length - 3}</span>}
                     </div>
                   </td>
-                  <td>{formatDate(row.createdAtUtc)}</td>
+                  <td>{formatDateTime(row.createdAtUtc)}</td>
                   <td>
                     <div className="candidates-row-actions">
-                      <button
-                        type="button"
+                      <Link
+                        to={`/candidates/${row.id}`}
+                        state={returnToState}
                         className="candidates-icon-btn"
-                        onClick={() => navigate(`/candidates/${row.id}`, { state: returnToState })}
                         aria-label={`View ${row.fullName}`}
                         title="View Profile"
                       >
                         <i className="bi bi-eye-fill" aria-hidden="true" />
-                      </button>
+                      </Link>
                       <button
                         type="button"
                         className="candidates-icon-btn"

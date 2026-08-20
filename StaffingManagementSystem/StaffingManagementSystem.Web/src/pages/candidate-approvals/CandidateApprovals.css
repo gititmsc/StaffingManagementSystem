@@ -1,3 +1,9 @@
+.candidate-approvals-page {
+  width: 95%;
+  max-width: 95%;
+  margin: 0 auto;
+}
+
 .candidate-approvals-tabs {
   display: flex;
   gap: 0.5rem;

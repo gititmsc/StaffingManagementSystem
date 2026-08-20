@@ -13,6 +13,7 @@ export interface CandidateListItem {
   email: string;
   phone?: string | null;
   currentLocation?: string | null;
+  linkedInUrl?: string | null;
   status: string;
   totalExperienceYears: number;
   currentCompany?: string | null;

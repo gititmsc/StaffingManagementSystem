@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 import { CANDIDATE_EDIT_ROLES, CANDIDATE_STATUS_LABELS, CANDIDATE_STATUS_OPTIONS } from "@/constants/candidates";
@@ -230,7 +230,7 @@ export default function CandidateList() {
   };
 
   return (
-    <div className="container py-4">
+    <div className="container-fluid py-4 candidates-page">
       <div className="candidates-header">
         <div>
           <h1 className="h4 mb-1" style={{ color: "var(--itm-primary)" }}>
@@ -323,6 +323,8 @@ export default function CandidateList() {
                 <tr>
                   {renderSortableHeader("name")}
                   {renderSortableHeader("email")}
+                  <th>Phone</th>
+                  <th>LinkedIn</th>
                   <th>Location</th>
                   {renderSortableHeader("experience")}
                   <th>Skills</th>
@@ -336,12 +338,22 @@ export default function CandidateList() {
                 {candidates.map((row) => (
                   <tr key={row.id}>
                     <td>
-                      <button type="button" className="candidates-name-link" onClick={() => navigate(`/candidates/${row.id}`)}>
+                      <Link to={`/candidates/${row.id}`} className="candidates-name-link">
                         {row.fullName}
-                      </button>
+                      </Link>
                       {row.title && <div className="candidates-name-subtitle">{row.title}</div>}
                     </td>
                     <td>{row.email}</td>
+                    <td>{row.phone || "—"}</td>
+                    <td>
+                      {row.linkedInUrl ? (
+                        <a href={row.linkedInUrl} target="_blank" rel="noreferrer">
+                          View <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>{row.currentLocation || "—"}</td>
                     <td>{row.totalExperienceYears} yrs</td>
                     <td>
@@ -363,15 +375,14 @@ export default function CandidateList() {
                     <td>{formatDate(row.createdAtUtc)}</td>
                     <td>
                       <div className="candidates-row-actions">
-                        <button
-                          type="button"
+                        <Link
+                          to={`/candidates/${row.id}`}
                           className="candidates-icon-btn"
-                          onClick={() => navigate(`/candidates/${row.id}`)}
                           aria-label={`View ${row.fullName}`}
                           title="View"
                         >
                           <i className="bi bi-eye-fill" aria-hidden="true" />
-                        </button>
+                        </Link>
                         {canEdit && (
                           <button
                             type="button"

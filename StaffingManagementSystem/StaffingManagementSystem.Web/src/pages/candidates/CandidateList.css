@@ -1,3 +1,9 @@
+.candidates-page {
+  width: 95%;
+  max-width: 95%;
+  margin: 0 auto;
+}
+
 .candidates-header {
   display: flex;
   align-items: flex-start;
@@ -89,11 +95,22 @@
   border: 1px solid var(--itm-border);
   border-radius: var(--itm-radius-card);
   box-shadow: var(--itm-shadow-soft);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .candidates-table {
   margin-bottom: 0;
+}
+
+.candidates-table tbody td:last-child,
+.candidates-table thead th:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--itm-card-bg);
+}
+
+.candidates-table thead th:last-child {
+  background: var(--itm-bg);
 }
 
 .candidates-table thead th {
@@ -143,6 +160,8 @@
   font-weight: 600;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .candidates-name-link:hover {
@@ -159,7 +178,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
-  max-width: 220px;
+  max-width: 320px;
 }
 
 .candidates-skill-chip {
@@ -244,6 +263,7 @@
   color: var(--itm-text);
   border-radius: 8px;
   cursor: pointer;
+  text-decoration: none;
   transition: background var(--itm-transition), color var(--itm-transition), border-color var(--itm-transition);
 }
 

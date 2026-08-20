@@ -148,8 +148,11 @@ function changePassword(request: ChangePasswordRequest): Promise<ApiResponse<nul
  * Persists a login result and arms the silent-refresh timer so the session stays alive without
  * the user having to sign in again while they're active.
  */
-function persistSession(result: AuthResult, rememberMe: boolean): void {
-  const storage = rememberMe ? window.localStorage : window.sessionStorage;
+function persistSession(result: AuthResult, _rememberMe: boolean): void {
+  // Always use localStorage, not sessionStorage — sessionStorage is scoped per browser tab,
+  // so a session written there is invisible to any tab opened afterwards (e.g. ctrl+click "open in new tab"),
+  // causing that tab to redirect to login even though the user is already signed in.
+  const storage = window.localStorage;
   storage.setItem(TOKEN_KEY, result.token);
   storage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
   storage.setItem(EXPIRES_AT_KEY, result.expiresAtUtc);
